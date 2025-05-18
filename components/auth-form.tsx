@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { loginUser, registerUser, AuthResponse } from "@/lib/mock-db";
 
 type AuthFormProps = React.ComponentPropsWithoutRef<"div"> & {
   defaultMode?: "login" | "signup";
@@ -22,12 +24,25 @@ export function AuthForm({
   defaultMode = "login",
   ...props
 }: AuthFormProps) {
+  const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">(defaultMode);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    phone: "",
+    password: "",
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // Update the URL when mode changes
   useEffect(() => {
     const url = mode === "signup" ? "/auth?mode=signup" : "/auth";
     window.history.replaceState(null, "", url);
+    // Clear form state when mode changes
+    setError(null);
+    setSuccess(null);
   }, [mode]);
 
   const isLogin = mode === "login";
@@ -42,17 +57,64 @@ export function AuthForm({
 
   const handleToggleMode = () => {
     setMode(isLogin ? "signup" : "login");
+    setFormData({
+      username: "",
+      email: "",
+      phone: "",
+      password: "",
+    });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
 
-    // Here you would typically handle authentication
-    // For now, we'll just log the action
-    console.log(`Form submitted in ${mode} mode`);
+    try {
+      let response: AuthResponse;
 
-    // And redirect to home (you would do this after successful auth)
-    // router.push("/");
+      if (isLogin) {
+        response = await loginUser(formData.username, formData.password);
+      } else {
+        response = await registerUser({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone || undefined,
+        });
+      }
+
+      if (response.success) {
+        setSuccess(response.message);
+        console.log("Auth successful:", response);
+
+        // Store token in localStorage for future API calls
+        if (response.token) {
+          localStorage.setItem("authToken", response.token);
+        }
+
+        // Redirect to dashboard after a brief delay to show success message
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 1500);
+      } else {
+        setError(response.message);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error("Auth error:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -63,6 +125,16 @@ export function AuthForm({
           <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 rounded bg-red-50 p-3 text-sm text-red-500">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 rounded bg-green-50 p-3 text-sm text-green-500">
+              {success}
+            </div>
+          )}
           <form onSubmit={handleSubmit}>
             <div className="grid gap-6">
               <div className="grid gap-6">
@@ -75,17 +147,34 @@ export function AuthForm({
                         type="email"
                         required
                         placeholder="you@example.com"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        disabled={isLoading}
                       />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="phone">Phone Number</Label>
-                      <Input id="phone" type="tel" placeholder="+1234567890" />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="+1234567890"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        disabled={isLoading}
+                      />
                     </div>
                   </>
                 )}
                 <div className="grid gap-2">
                   <Label htmlFor="username">Username</Label>
-                  <Input id="username" type="text" required />
+                  <Input
+                    id="username"
+                    type="text"
+                    required
+                    value={formData.username}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <div className="flex items-center">
@@ -99,10 +188,17 @@ export function AuthForm({
                       </a>
                     )}
                   </div>
-                  <Input id="password" type="password" required />
+                  <Input
+                    id="password"
+                    type="password"
+                    required
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                  />
                 </div>
-                <Button type="submit" className="w-full">
-                  {submitButtonText}
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Processing..." : submitButtonText}
                 </Button>
               </div>
               <div className="text-center text-sm">
@@ -110,6 +206,7 @@ export function AuthForm({
                   type="button"
                   onClick={handleToggleMode}
                   className="underline underline-offset-4 hover:text-primary"
+                  disabled={isLoading}
                 >
                   {toggleText}
                 </button>

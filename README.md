@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Community Pulse
 
-## Getting Started
+A location-aware platform designed to facilitate interaction, visibility, and participation within defined geographic communities.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Users can post and browse events. Supported category Garage Sales, Sports, Matches (local cricket, football, tennis, etc.), Community Classes (yoga sessions, art classes, educational workshops), Volunteer Opportunities (clean-up drives donation camps), Exhibitions, Small Festivals or Celebrations.
+- Also, the user can edit and delete his/her event.
+- Users can mark their interest in attending an event without needing to fill out lengthy forms (only take name, email, phone, and number of people coming with you).
+- Notifications (through either one of Email, SMS, or WhatsApp):
+  1. Reminder 1 day before the event.
+  2. Live updates if the event changes (e.g., location change or cancellation).
+- Mobile freindly
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Admin Role
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- View, approve, or reject submitted events.
+- Flag inappropriate content and remove if needed.
+- View event history by user.
+- Assign "Verified Organizer" status.
+- Ban users if needed.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Structure
 
-## Learn More
+- header shows `Pulse`, Searchbar and Login
+- on authentication, header shows `Pulse`, Searchbar, regitered event, my events, avatar and logout
+- adapt layout to make site mobile compatible as well
 
-To learn more about Next.js, take a look at the following resources:
+### Home Page
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Cards for events with image as full background
+- Translucent text overlay on card image like apple app store
+- Show title, one line description, date, time, location, and category
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Event Page
 
-## Deploy on Vercel
+- Split layout between content and sidebar
+- Content: background image, title, description
+- Right sidebar on wide screen and between title and description on mobile
+- Sidebar: rgister button, event date and time duration slot, location address, organizer details name, phone and mail, category
+- if not logged in register should redirect to auth page which should redirect back to event page
+- if logged in register should show a form with name, email, phone filled in from user profile and number of people coming with you
+- if event created bu user, add option to edit or delete event
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Event Creation Page
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- displays a from with image, title, description, date, time, location, category, registration deadline etc.
