@@ -1,5 +1,6 @@
 "use client";
 
+// Import types from events-db and data from server-events
 import { events } from "./server-events";
 import {
   Event,
