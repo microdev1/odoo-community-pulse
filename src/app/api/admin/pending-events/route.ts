@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -19,41 +19,43 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // Get pending events
-    const pendingEvents = await prisma.event.findMany({
-      where: {
-        isApproved: false,
-      },
-      skip,
-      take: limit,
-      orderBy: {
-        createdAt: 'asc',
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            isVerifiedOrganizer: true,
-          },
-        },
-      },
-    });
-
-    const total = await prisma.event.count({
-      where: {
-        isApproved: false,
-      },
-    });
+    // Get pending events count first
+    const { count: total, error: countError } = await supabaseAdmin
+      .from('events')
+      .select('*', { count: 'exact', head: true })
+      .eq('isApproved', false);
+      
+    if (countError) {
+      throw countError;
+    }
+    
+    // Now get the pending events with pagination
+    const { data: pendingEvents, error: eventsError } = await supabaseAdmin
+      .from('events')
+      .select(`
+        *,
+        user:users!createdBy (
+          id,
+          name,
+          email,
+          isVerifiedOrganizer
+        )
+      `)
+      .eq('isApproved', false)
+      .order('createdAt', { ascending: true })
+      .range(skip, skip + limit - 1);
+      
+    if (eventsError) {
+      throw eventsError;
+    }
 
     return NextResponse.json({
       events: pendingEvents,
       pagination: {
-        total,
+        total: total || 0,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil((total || 0) / limit),
       },
     });
   } catch (error) {

@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 import { addDays, startOfDay, endOfDay } from 'date-fns';
 
@@ -25,24 +25,34 @@ export async function POST(request: NextRequest) {
     const tomorrowEnd = endOfDay(addDays(now, 1));
 
     // Find all approved events happening tomorrow
-    const upcomingEvents = await prisma.event.findMany({
-      where: {
-        isApproved: true,
-        startDate: {
-          gte: tomorrowStart,
-          lte: tomorrowEnd,
-        },
-      },
-      include: {
-        attendances: {
-          select: {
-            name: true,
-            email: true,
-            phone: true,
-          },
-        },
-      },
-    });
+    const tomorrowStartIso = tomorrowStart.toISOString();
+    const tomorrowEndIso = tomorrowEnd.toISOString();
+    
+    const { data: upcomingEvents, error: eventsError } = await supabaseAdmin
+      .from('events')
+      .select(`
+        *,
+        attendances (
+          name,
+          email,
+          phone
+        )
+      `)
+      .eq('isApproved', true)
+      .gte('startDate', tomorrowStartIso)
+      .lte('startDate', tomorrowEndIso);
+      
+    if (eventsError) {
+      throw eventsError;
+    }
+    
+    if (!upcomingEvents) {
+      return NextResponse.json({
+        success: true,
+        eventsProcessed: 0,
+        remindersCreated: 0,
+      });
+    }
 
     let reminderCount = 0;
 
@@ -54,15 +64,17 @@ export async function POST(request: NextRequest) {
       for (const attendee of event.attendances) {
         try {
           // Create a notification for this attendee
-          await prisma.notification.create({
-            data: {
+          const eventStartTime = new Date(event.startDate).toLocaleTimeString();
+          const { error: notifError } = await supabaseAdmin
+            .from('notifications')
+            .insert({
               email: attendee.email,
               phone: attendee.phone || null,
-              message: `Reminder: You're attending "${event.title}" tomorrow at ${event.location}. Event starts at ${new Date(event.startDate).toLocaleTimeString()}.`,
+              message: `Reminder: You're attending "${event.title}" tomorrow at ${event.location}. Event starts at ${eventStartTime}.`,
               type: 'EVENT_REMINDER',
               isSent: false,
-            },
-          });
+              createdAt: new Date().toISOString()
+            });
 
           reminderCount++;
         } catch (error) {

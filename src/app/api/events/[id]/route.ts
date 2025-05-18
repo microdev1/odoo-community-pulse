@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -9,29 +9,29 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const event = await prisma.event.findUnique({
-      where: {
-        id: params.id,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            isVerifiedOrganizer: true,
-          },
-        },
-        attendances: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            peopleCount: true,
-            createdAt: true,
-          },
-        },
-      },
-    });
+    const { data: event, error } = await supabaseAdmin
+      .from('events')
+      .select(`
+        *,
+        user:users!createdBy (
+          id,
+          name,
+          isVerifiedOrganizer
+        ),
+        attendances (
+          id,
+          name,
+          email,
+          peopleCount,
+          createdAt
+        )
+      `)
+      .eq('id', params.id)
+      .single();
+      
+    if (error) {
+      throw error;
+    }
 
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
@@ -57,18 +57,22 @@ export async function PUT(
     }
 
     // Get full event details including attendances
-    const event = await prisma.event.findUnique({
-      where: { id: params.id },
-      include: {
-        attendances: {
-          select: {
-            name: true,
-            email: true,
-            phone: true,
-          }
-        }
-      },
-    });
+    const { data: event, error } = await supabaseAdmin
+      .from('events')
+      .select(`
+        *,
+        attendances (
+          name,
+          email,
+          phone
+        )
+      `)
+      .eq('id', params.id)
+      .single();
+      
+    if (error) {
+      throw error;
+    }
 
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
@@ -92,24 +96,28 @@ export async function PUT(
     const dateChanged = new Date(startDate).getTime() !== new Date(event.startDate).getTime();
     const cancelled = data.cancelled === true;
 
-    const updatedEvent = await prisma.event.update({
-      where: {
-        id: params.id,
-      },
-      data: {
+    const { data: updatedEvent, error: updateError } = await supabaseAdmin
+      .from('events')
+      .update({
         title,
         description,
         category,
         location,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: new Date(startDate).toISOString(),
+        endDate: new Date(endDate).toISOString(),
         imageUrl,
         isApproved,
-        updatedAt: new Date(),
-      },
-    });
+        updatedAt: new Date().toISOString()
+      })
+      .eq('id', params.id)
+      .select()
+      .single();
+      
+    if (updateError) {
+      throw updateError;
+    }
 
     // If key details changed, create notifications for all attendees
     if (locationChanged || dateChanged || cancelled) {
@@ -127,16 +135,23 @@ export async function PUT(
       }
 
       // Create notifications for all attendees
-      for (const attendee of event.attendances) {
-        await prisma.notification.create({
-          data: {
-            email: attendee.email,
-            phone: attendee.phone || null,
-            message: updateMessage,
-            type: 'EVENT_UPDATE',
-            isSent: false,
-          },
-        });
+      const notifications = event.attendances.map((attendee: { email: string; phone?: string }) => ({
+        email: attendee.email,
+        phone: attendee.phone || null,
+        message: updateMessage,
+        type: 'EVENT_UPDATE',
+        isSent: false,
+        createdAt: new Date().toISOString()
+      }));
+
+      if (notifications.length > 0) {
+        const { error: notifError } = await supabaseAdmin
+          .from('notifications')
+          .insert(notifications);
+          
+        if (notifError) {
+          console.error('Error creating notifications:', notifError);
+        }
       }
     }
 
@@ -159,12 +174,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const event = await prisma.event.findUnique({
-      where: { id: params.id },
-      select: { createdBy: true },
-    });
+    const { data: event, error: fetchError } = await supabaseAdmin
+      .from('events')
+      .select('createdBy')
+      .eq('id', params.id)
+      .single();
 
-    if (!event) {
+    if (fetchError || !event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
@@ -173,12 +189,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Not authorized to delete this event' }, { status: 403 });
     }
 
-    // Delete the event and its associated attendances through cascade
-    await prisma.event.delete({
-      where: {
-        id: params.id,
-      },
-    });
+    // Delete the event (cascades to attendances based on Supabase RLS policies)
+    const { error: deleteError } = await supabaseAdmin
+      .from('events')
+      .delete()
+      .eq('id', params.id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

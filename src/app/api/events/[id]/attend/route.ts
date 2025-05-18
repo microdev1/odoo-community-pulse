@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -15,36 +15,45 @@ export async function POST(
     const { name, email, phone, peopleCount } = data;
 
     // Validate the event exists and is approved
-    const event = await prisma.event.findUnique({
-      where: {
-        id: params.id,
-        isApproved: true,
-      },
-      include: {
-        user: {
-          select: {
-            email: true,
-            phone: true,
-          },
-        },
-      },
-    });
+    const { data: event, error: eventError } = await supabaseAdmin
+      .from('events')
+      .select(`
+        *,
+        user:users!createdBy (
+          email,
+          phone
+        )
+      `)
+      .eq('id', params.id)
+      .eq('isApproved', true)
+      .single();
+      
+    if (eventError) {
+      throw eventError;
+    }
 
     if (!event) {
       return NextResponse.json({ error: 'Event not found or not approved' }, { status: 404 });
     }
 
     // Create the attendance record
-    const attendance = await prisma.attendance.create({
-      data: {
+    const { data: attendance, error: attendanceError } = await supabaseAdmin
+      .from('attendances')
+      .insert({
         name,
         email,
         phone,
         peopleCount,
         eventId: params.id,
-        userId: session?.user?.id,
-      },
-    });
+        userId: session?.user?.id || null,
+        createdAt: new Date().toISOString()
+      })
+      .select()
+      .single();
+      
+    if (attendanceError) {
+      throw attendanceError;
+    }
 
     // Notify the event creator
     if (event.user.email) {
@@ -62,15 +71,17 @@ export async function POST(
     reminderDate.setDate(reminderDate.getDate() - 1);
 
     // Store the notification in the database to be sent later
-    await prisma.notification.create({
-      data: {
+    const eventStartTime = new Date(event.startDate).toLocaleTimeString();
+    const { error: notificationError } = await supabaseAdmin
+      .from('notifications')
+      .insert({
         email,
         phone,
-        message: `Reminder: You're attending "${event.title}" tomorrow at ${event.location}. Event starts at ${event.startDate.toLocaleTimeString()}.`,
+        message: `Reminder: You're attending "${event.title}" tomorrow at ${event.location}. Event starts at ${eventStartTime}.`,
         type: 'EVENT_REMINDER',
         isSent: false,
-      },
-    });
+        createdAt: new Date().toISOString()
+      });
 
     return NextResponse.json(attendance, { status: 201 });
   } catch (error) {

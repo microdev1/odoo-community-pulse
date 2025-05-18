@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendNotification } from '@/lib/notifications';
 
@@ -21,12 +21,23 @@ export async function POST(request: NextRequest) {
     const now = new Date();
 
     // Get pending notifications
-    const pendingNotifications = await prisma.notification.findMany({
-      where: {
-        isSent: false,
-      },
-      take: 100, // Process in batches
-    });
+    const { data: pendingNotifications, error: notifError } = await supabaseAdmin
+      .from('notifications')
+      .select('*')
+      .eq('isSent', false)
+      .limit(100); // Process in batches
+      
+    if (notifError) {
+      throw notifError;
+    }
+    
+    if (!pendingNotifications || pendingNotifications.length === 0) {
+      return NextResponse.json({
+        success: true,
+        processed: 0,
+        successful: 0,
+      });
+    }
 
     let processedCount = 0;
     let successCount = 0;
@@ -46,14 +57,17 @@ export async function POST(request: NextRequest) {
         );
 
         // Update notification as sent
-        await prisma.notification.update({
-          where: {
-            id: notification.id,
-          },
-          data: {
+        const { error: updateError } = await supabaseAdmin
+          .from('notifications')
+          .update({
             isSent: true,
-          },
-        });
+            updatedAt: new Date().toISOString()
+          })
+          .eq('id', notification.id);
+          
+        if (updateError) {
+          throw updateError;
+        }
 
         if (result.email.success || result.sms.success || result.whatsapp.success) {
           successCount++;

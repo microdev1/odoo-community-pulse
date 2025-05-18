@@ -20,7 +20,7 @@ A location-aware platform designed to facilitate interaction, visibility, and pa
 
 ### Prerequisites
 - Node.js v18+ and npm/pnpm
-- MongoDB database
+- Supabase account and project
 
 ### Installation
 
@@ -35,11 +35,18 @@ A location-aware platform designed to facilitate interaction, visibility, and pa
    pnpm install
    ```
 
-3. Create a `.env` file in the root directory with the following variables (see `.env.example` for a template):
+3. Create a `.env` file in the root directory with the following variables (see `.env.template` for a template):
    ```
-   DATABASE_URL="your-mongodb-connection-string"
+   # Next Auth
    NEXTAUTH_SECRET="your-secret-key"
    NEXTAUTH_URL="http://localhost:3000"
+   
+   # Supabase
+   NEXT_PUBLIC_SUPABASE_URL="your-supabase-url"
+   NEXT_PUBLIC_SUPABASE_ANON_KEY="your-supabase-anon-key"
+   SUPABASE_SERVICE_ROLE_KEY="your-supabase-service-role-key"
+   
+   # Email and notifications
    EMAIL_SERVER_HOST="smtp.example.com"
    EMAIL_SERVER_PORT="587"
    EMAIL_SERVER_USER="user@example.com"
@@ -54,10 +61,10 @@ A location-aware platform designed to facilitate interaction, visibility, and pa
    NOTIFICATION_SECRET_TOKEN="your-secret-token"
    ```
 
-4. Generate Prisma client and push schema to database
+4. Set up Supabase database
    ```bash
-   pnpm exec prisma generate
-   pnpm exec prisma db push
+   # Apply the initial migration schema from supabase/migrations directory
+   # You can use Supabase CLI or copy the SQL to the Supabase SQL Editor
    ```
 
 5. Run the development server
@@ -75,12 +82,11 @@ A location-aware platform designed to facilitate interaction, visibility, and pa
 ### Creating an Admin User
 
 1. First, register a new user through the application
-2. Connect to your database and update the user to have admin privileges:
-   ```js
-   db.User.updateOne(
-     { email: "admin@example.com" },
-     { $set: { isAdmin: true } }
-   )
+2. Connect to your Supabase database and update the user to have admin privileges:
+   ```sql
+   UPDATE users
+   SET is_admin = true
+   WHERE email = 'admin@example.com';
    ```
 
 ## Project Structure
@@ -89,7 +95,7 @@ A location-aware platform designed to facilitate interaction, visibility, and pa
 - `src/components` - Reusable React components
 - `src/lib` - Utility functions and shared code
 - `scripts` - Scripts for background jobs like notifications
-- `prisma` - Database schema and migrations
+- `supabase/migrations` - Database migration SQL files
 
 ## Background Jobs
 

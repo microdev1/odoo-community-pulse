@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -23,19 +23,21 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
 
-    const event = await prisma.event.findUnique({
-      where: {
-        id: params.id,
-      },
-      include: {
-        user: {
-          select: {
-            email: true,
-            phone: true,
-          },
-        },
-      },
-    });
+    const { data: event, error: eventError } = await supabaseAdmin
+      .from('events')
+      .select(`
+        *,
+        user:users!createdBy (
+          email,
+          phone
+        )
+      `)
+      .eq('id', params.id)
+      .single();
+      
+    if (eventError) {
+      throw eventError;
+    }
 
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
@@ -43,14 +45,17 @@ export async function POST(
 
     if (action === 'approve') {
       // Approve the event
-      await prisma.event.update({
-        where: {
-          id: params.id,
-        },
-        data: {
+      const { error: updateError } = await supabaseAdmin
+        .from('events')
+        .update({ 
           isApproved: true,
-        },
-      });
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', params.id);
+        
+      if (updateError) {
+        throw updateError;
+      }
 
       // Notify the event creator
       if (event.user.email) {
@@ -66,11 +71,14 @@ export async function POST(
       return NextResponse.json({ success: true, message: 'Event approved' });
     } else {
       // Reject and delete the event
-      await prisma.event.delete({
-        where: {
-          id: params.id,
-        },
-      });
+      const { error: deleteError } = await supabaseAdmin
+        .from('events')
+        .delete()
+        .eq('id', params.id);
+        
+      if (deleteError) {
+        throw deleteError;
+      }
 
       // Notify the event creator with the reason
       if (event.user.email) {

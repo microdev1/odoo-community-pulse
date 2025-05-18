@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcrypt';
 
@@ -8,11 +8,11 @@ export async function POST(request: NextRequest) {
     const { name, email, password, phone, location } = data;
 
     // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email,
-      },
-    });
+    const { data: existingUser, error: checkError } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
 
     if (existingUser) {
       return NextResponse.json(
@@ -25,22 +25,24 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hash(password, 10);
 
     // Create the user
-    const user = await prisma.user.create({
-      data: {
+    const { data: user, error: createError } = await supabaseAdmin
+      .from('users')
+      .insert({
         name,
         email,
         password: hashedPassword,
         phone,
         location,
         isVerified: true, // Auto-verify for simplicity (could use email verification in production)
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        isVerified: true,
-      },
-    });
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+      .select('id, name, email, isVerified')
+      .single();
+      
+    if (createError) {
+      throw createError;
+    }
 
     return NextResponse.json({
       user,

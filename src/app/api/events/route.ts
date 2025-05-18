@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { supabaseAdmin } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -13,63 +13,58 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const upcoming = searchParams.get('upcoming') === 'true';
 
-    const skip = (page - 1) * limit;
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
 
-    // Build filter object
-    const where: any = { isApproved: true };
+    // Start building query
+    let query = supabaseAdmin
+      .from('events')
+      .select(`
+        *,
+        user:users!createdBy (
+          name,
+          isVerifiedOrganizer
+        ),
+        attendances_count:attendances (count)
+      `, { count: 'exact' })
+      .eq('isApproved', true);
 
     // Add category filter if provided
     if (category) {
-      where.category = category;
+      query = query.eq('category', category);
     }
 
     // Add search filter if provided
     if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { location: { contains: search, mode: 'insensitive' } },
-      ];
+      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,location.ilike.%${search}%`);
     }
 
     // Add date filter for upcoming events
     if (upcoming) {
-      where.startDate = { gte: new Date() };
+      const now = new Date().toISOString();
+      query = query.gte('startDate', now);
     }
 
-    // Get total count for pagination
-    const total = await prisma.event.count({ where });
+    // Add ordering
+    query = query.order('startDate', { ascending: true });
 
-    // Get events
-    const events = await prisma.event.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: {
-        startDate: 'asc',
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            isVerifiedOrganizer: true,
-          },
-        },
-        _count: {
-          select: {
-            attendances: true,
-          },
-        },
-      },
-    });
+    // Add pagination
+    query = query.range(from, to);
+
+    // Execute the query
+    const { data: events, count: total, error } = await query;
+    
+    if (error) {
+      throw error;
+    }
 
     return NextResponse.json({
       events,
       pagination: {
-        total,
+        total: total || 0,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil((total || 0) / limit),
       },
     });
   } catch (error) {
@@ -90,22 +85,28 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     const { title, description, category, location, latitude, longitude, startDate, endDate, imageUrl } = data;
 
-    const newEvent = await prisma.event.create({
-      data: {
+    const { data: newEvent, error } = await supabaseAdmin
+      .from('events')
+      .insert({
         title,
         description,
         category,
         location,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: new Date(startDate).toISOString(),
+        endDate: new Date(endDate).toISOString(),
         imageUrl,
         createdBy: session.user.id,
         // Auto-approve for verified organizers
         isApproved: session.user.isVerifiedOrganizer || session.user.isAdmin,
-      },
-    });
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     return NextResponse.json(newEvent, { status: 201 });
   } catch (error) {
