@@ -411,6 +411,23 @@ export const EventService = {
     };
 
     events[eventIndex] = unflaggedEvent;
+
+    // Notify the organizer that the flag has been removed
+    try {
+      await NotificationService.sendNotification({
+        recipient: {
+          id: unflaggedEvent.organizer.id,
+          name: unflaggedEvent.organizer.name,
+          email: unflaggedEvent.organizer.email,
+          phone: unflaggedEvent.organizer.phone,
+        },
+        event: unflaggedEvent,
+        template: NotificationTemplate.EventUnflagged,
+      });
+    } catch (error) {
+      console.error("Failed to send unflag notification:", error);
+    }
+
     return unflaggedEvent;
   },
 

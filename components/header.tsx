@@ -69,7 +69,7 @@ export function Header() {
                 <Link href="/create-event">Create Event</Link>
               </Button>
               <div className="flex items-center gap-2">
-                <Link href="/profile" className="block">
+                <Link href="/admin" className="block">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">
                     {user?.username.charAt(0).toUpperCase()}
                   </div>

@@ -146,7 +146,7 @@ export default function AdminPage() {
             : event
         )
       );
-      toast.success("Flag removed from event.");
+      toast.success("Flag removed from event. Notification sent to organizer.");
     } catch (error) {
       console.error("Failed to unflag event:", error);
       toast.error("Failed to unflag event");
