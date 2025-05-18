@@ -15,7 +15,7 @@ export default function RegisteredEventsPage() {
     return (
       <div className="min-h-screen">
         <Header />
-        <main className="container flex flex-col items-center justify-center px-4 py-16">
+        <main className="container mx-auto flex flex-col items-center justify-center px-4 py-16">
           <h1 className="mb-4 text-2xl font-bold">Login Required</h1>
           <p className="mb-6 text-center">
             Please login to view your registered events
@@ -31,7 +31,7 @@ export default function RegisteredEventsPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="container px-4 py-8">
+      <main className="container mx-auto px-4 py-8">
         <h1 className="mb-6 text-3xl font-bold">Registered Events</h1>
 
         {isLoading ? (

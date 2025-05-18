@@ -19,7 +19,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="container px-4 py-8">
+      <main className="container mx-auto px-4 py-8">
         <h1 className="mb-6 text-3xl font-bold">Community Events</h1>
 
         {isLoading ? (

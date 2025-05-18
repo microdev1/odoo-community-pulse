@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { EventService } from "@/lib/event-service";
-import { Event, EventCategory } from "@/lib/events-db";
+import { Event, EventCategory, EventRegistration } from "@/lib/events-db";
 
 // Event query hooks
 export function useEvents() {
@@ -105,8 +105,9 @@ export function useRegisterForEvent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (registration: Omit<any, "id" | "registeredAt">) =>
-      EventService.registerForEvent(registration),
+    mutationFn: (
+      registration: Omit<EventRegistration, "id" | "registeredAt">
+    ) => EventService.registerForEvent(registration),
     onSuccess: (data) => {
       toast.success("Registration successful!");
       queryClient.invalidateQueries({

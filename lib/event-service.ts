@@ -1,6 +1,11 @@
 "use client";
 
 import { events } from "./server-events";
+import {
+  Event,
+  EventRegistration,
+  eventRegistrations as registrations,
+} from "./events-db";
 
 // Data service functions to replace direct DB manipulation
 
@@ -117,14 +122,20 @@ export const EventService = {
   ): Promise<EventRegistration> => {
     await new Promise((resolve) => setTimeout(resolve, 300));
 
-    const newRegistration: EventRegistration = {
-      ...registration,
-      id: String(registrations.length + 1),
-      registeredAt: new Date(),
-    };
+    // Extract eventId and user data to match the registerForEvent function in events-db.ts
+    const { eventId, userId, name, email, phone, additionalAttendees } =
+      registration;
 
-    registrations.push(newRegistration);
-    return newRegistration;
+    // Call the actual database function with the correct parameters
+    return import("./events-db").then(({ registerForEvent }) => {
+      return registerForEvent(eventId, {
+        userId,
+        name,
+        email,
+        phone,
+        additionalAttendees: additionalAttendees || 0,
+      });
+    });
   },
 
   // Admin functions

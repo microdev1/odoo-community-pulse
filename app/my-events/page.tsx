@@ -15,7 +15,7 @@ export default function MyEventsPage() {
     return (
       <div className="min-h-screen">
         <Header />
-        <main className="container flex flex-col items-center justify-center px-4 py-16">
+        <main className="container mx-auto flex flex-col items-center justify-center px-4 py-16">
           <h1 className="mb-4 text-2xl font-bold">Login Required</h1>
           <p className="mb-6 text-center">Please login to view your events</p>
           <Button asChild>
@@ -29,7 +29,7 @@ export default function MyEventsPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="container px-4 py-8">
+      <main className="container mx-auto px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-3xl font-bold">My Events</h1>
           <Button asChild>

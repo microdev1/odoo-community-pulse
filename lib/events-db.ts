@@ -81,7 +81,7 @@ export let events: Event[] = [
       "Community-wide garage sale with great deals on household items, clothes, toys, and more. Come find some treasures!",
     shortDescription: "Find great deals at our community sale",
     imageUrl:
-      "https://images.unsplash.com/photo-1563127941-ea3d43fa95c8?w=800&q=80",
+      "https://images.unsplash.com/photo-1653286859854-8fad9de85459?w=800&q=80",
     date: new Date("2025-06-05T08:00:00"),
     endDate: new Date("2025-06-05T16:00:00"),
     location: {

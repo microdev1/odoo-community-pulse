@@ -97,7 +97,7 @@ export function EventDetailClient({
         style={{ backgroundImage: `url(${event.imageUrl})` }}
       >
         <div className="absolute inset-0 bg-black/50" />
-        <div className="container absolute bottom-0 left-0 right-0 p-6">
+        <div className="container mx-auto absolute bottom-0 left-0 right-0 p-6">
           <span className="inline-block rounded-full bg-primary px-3 py-1 text-sm text-white">
             {event.category}
           </span>
@@ -108,7 +108,7 @@ export function EventDetailClient({
       </div>
 
       {/* Event content */}
-      <div className="container py-6">
+      <div className="container mx-auto py-6">
         <div className="mx-auto flex max-w-5xl flex-col gap-8 lg:flex-row">
           {/* Main content */}
           <div className="flex-1">

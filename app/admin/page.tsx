@@ -95,7 +95,7 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen">
         <Header />
-        <main className="container px-4 py-8">
+        <main className="container mx-auto px-4 py-8">
           <h1 className="mb-6 text-3xl font-bold">Admin Dashboard</h1>
           <p>Loading...</p>
         </main>
@@ -107,7 +107,7 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen">
         <Header />
-        <main className="container flex flex-col items-center justify-center px-4 py-16">
+        <main className="container mx-auto flex flex-col items-center justify-center px-4 py-16">
           <h1 className="mb-4 text-2xl font-bold">Admin Access Required</h1>
           <p className="mb-6 text-center">Please login with an admin account</p>
           <Button asChild>
@@ -125,7 +125,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen">
       <Header />
-      <main className="container px-4 py-8">
+      <main className="container mx-auto px-4 py-8">
         <h1 className="mb-6 text-3xl font-bold">Admin Dashboard</h1>
 
         <div className="mb-6">

@@ -3,9 +3,9 @@
 import { Header } from "@/components/header";
 import { useQuery } from "@tanstack/react-query";
 import { EventDetailClientEnhanced } from "./event-detail-client-enhanced";
-import { notFound, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { EventService } from "@/lib/event-service";
-import { format } from "date-fns";
+import { Event } from "@/lib/events-db";
 
 export default function EventPage() {
   const params = useParams();
@@ -18,24 +18,24 @@ export default function EventPage() {
   } = useQuery({
     queryKey: ["event", id],
     queryFn: () => EventService.getEventById(id),
-  });
+  }) as { data: Event | undefined; isLoading: boolean; error: any };
 
   // Helper functions for formatting
-  const formatDate = (date: Date) => {
+  const formatDate = (dateStr: string | Date) => {
     return new Intl.DateTimeFormat("en-US", {
       weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
-    }).format(new Date(date));
+    }).format(new Date(dateStr));
   };
 
-  const formatTime = (date: Date) => {
+  const formatTime = (dateStr: string | Date) => {
     return new Intl.DateTimeFormat("en-US", {
       hour: "numeric",
       minute: "numeric",
       hour12: true,
-    }).format(new Date(date));
+    }).format(new Date(dateStr));
   };
 
   // Calculate event duration
@@ -48,7 +48,7 @@ export default function EventPage() {
     return (
       <div className="min-h-screen">
         <Header />
-        <div className="container px-4 py-8">
+        <div className="container mx-auto px-4 py-8">
           <p>Loading event details...</p>
         </div>
       </div>
@@ -59,21 +59,45 @@ export default function EventPage() {
     return (
       <div className="min-h-screen">
         <Header />
-        <div className="container px-4 py-8">
+        <div className="container mx-auto px-4 py-8">
           <p>Event not found or error loading event details.</p>
         </div>
       </div>
     );
   }
 
-  const eventDate = formatDate(event.date);
-  const eventTime = getEventDuration(event);
+  // Ensure we're working with a proper Event object
+  if (!event || !event.date) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <p>Invalid event data.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Convert date strings to Date objects if necessary
+  const eventObj = {
+    ...event,
+    date: new Date(event.date),
+    endDate: event.endDate ? new Date(event.endDate) : undefined,
+    registrationDeadline: event.registrationDeadline
+      ? new Date(event.registrationDeadline)
+      : undefined,
+    createdAt: new Date(event.createdAt),
+    updatedAt: event.updatedAt ? new Date(event.updatedAt) : undefined,
+  };
+
+  const eventDate = formatDate(eventObj.date);
+  const eventTime = getEventDuration(eventObj);
 
   return (
     <div className="min-h-screen">
       <Header />
       <EventDetailClientEnhanced
-        event={event}
+        event={eventObj}
         formattedDate={eventDate}
         formattedTime={eventTime}
       />

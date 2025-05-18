@@ -48,16 +48,12 @@ export function EventDetailClientEnhanced({
     mutationFn: (data: {
       eventId: string;
       userId: string;
-      attendees: number;
+      name: string;
+      email: string;
+      phone?: string;
+      additionalAttendees: number;
     }) => {
-      return EventService.registerForEvent({
-        eventId: data.eventId,
-        userId: data.userId,
-        name: user!.username,
-        email: user!.email,
-        phone: user?.phone || "",
-        attendees: data.attendees,
-      });
+      return EventService.registerForEvent(data);
     },
     onSuccess: () => {
       setRegistrationSuccess(true);
@@ -93,7 +89,10 @@ export function EventDetailClientEnhanced({
     registerMutation.mutate({
       eventId: event.id,
       userId: user.id,
-      attendees,
+      name: user.username,
+      email: user.email,
+      phone: user?.phone || "",
+      additionalAttendees: attendees,
     });
   };
 
@@ -108,7 +107,7 @@ export function EventDetailClientEnhanced({
         className="h-64 bg-cover bg-center md:h-80"
         style={{ backgroundImage: `url(${event.imageUrl})` }}
       >
-        <div className="container flex h-full items-end px-4 pb-8">
+        <div className="container mx-auto flex h-full items-end px-4 pb-8">
           <div className="bg-background/80 p-4 backdrop-blur-sm md:max-w-2xl">
             <h1 className="text-2xl font-bold md:text-4xl">{event.title}</h1>
           </div>
@@ -116,7 +115,7 @@ export function EventDetailClientEnhanced({
       </div>
 
       {/* Content */}
-      <div className="container px-4 py-8">
+      <div className="container mx-auto px-4 py-8">
         <div className="grid gap-8 md:grid-cols-3">
           {/* Main Content */}
           <div className="md:col-span-2">

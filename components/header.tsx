@@ -26,7 +26,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
-      <div className="container flex h-16 items-center justify-between px-4">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="text-xl font-semibold tracking-tight">
           Pulse
         </Link>
@@ -91,7 +91,7 @@ export function Header() {
           )}
         </nav>
       </div>
-      <div className="container flex py-2 md:hidden">
+      <div className="container mx-auto flex py-2 md:hidden">
         <form onSubmit={handleSearch} className="w-full px-4">
           <Input
             type="search"
