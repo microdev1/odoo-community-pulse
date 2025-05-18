@@ -19,6 +19,7 @@ export enum NotificationTemplate {
   EventUpdated = "event_updated",
   EventCancelled = "event_cancelled",
   RegistrationConfirmation = "registration_confirmation",
+  RegistrationCancelled = "registration_cancelled",
 }
 
 /**

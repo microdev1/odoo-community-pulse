@@ -119,3 +119,21 @@ export function useRegisterForEvent() {
     },
   });
 }
+
+export function useCancelRegistration() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ eventId, userId }: { eventId: string; userId: string }) =>
+      EventService.cancelRegistration(eventId, userId),
+    onSuccess: (_, { userId }) => {
+      toast.success("Registration cancelled successfully!");
+      queryClient.invalidateQueries({
+        queryKey: ["events", "registered", userId],
+      });
+    },
+    onError: () => {
+      toast.error("Failed to cancel registration. Please try again.");
+    },
+  });
+}

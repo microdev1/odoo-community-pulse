@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -8,6 +8,7 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Event } from "@/lib/events-db";
 import { EventService } from "@/lib/event-service";
+import { useCancelRegistration } from "@/lib/event-hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,8 +41,18 @@ export function EventDetailClientEnhanced({
   const [isRegistering, setIsRegistering] = useState(false);
   const [attendees, setAttendees] = useState(1);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
 
   const isOrganizer = user?.id === event.organizer.id;
+
+  // Check if user is registered for this event
+  useEffect(() => {
+    if (user?.id && isAuthenticated) {
+      EventService.isUserRegistered(event.id, user.id).then((result) => {
+        setIsRegistered(result);
+      });
+    }
+  }, [user, event.id, isAuthenticated]);
 
   // Registration mutation
   const registerMutation = useMutation({
@@ -78,6 +89,9 @@ export function EventDetailClientEnhanced({
     },
   });
 
+  // Cancel registration mutation
+  const cancelRegistrationMutation = useCancelRegistration();
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -98,6 +112,22 @@ export function EventDetailClientEnhanced({
 
   const handleDelete = () => {
     deleteMutation.mutate(event.id);
+  };
+
+  const handleCancelRegistration = () => {
+    if (!user) {
+      router.push(`/auth?redirect=/events/${event.id}`);
+      return;
+    }
+
+    cancelRegistrationMutation.mutate(
+      { eventId: event.id, userId: user.id },
+      {
+        onSuccess: () => {
+          setIsRegistered(false);
+        },
+      }
+    );
   };
 
   return (
@@ -137,12 +167,26 @@ export function EventDetailClientEnhanced({
           {/* Sidebar */}
           <div className="rounded-lg border p-4 shadow-sm">
             {/* Registration Status */}
-            {registrationSuccess ? (
-              <div className="mb-6 rounded-md bg-green-50 p-4 text-green-800">
-                <p className="font-medium">You're registered!</p>
-                <p className="mt-1 text-sm">
-                  You'll receive a confirmation email shortly.
-                </p>
+            {registrationSuccess || isRegistered ? (
+              <div className="mb-6 space-y-4">
+                <div className="rounded-md bg-green-50 p-4 text-green-800">
+                  <p className="font-medium">You're registered!</p>
+                  <p className="mt-1 text-sm">
+                    {registrationSuccess
+                      ? "You'll receive a confirmation email shortly."
+                      : "You're confirmed for this event."}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full border-red-300 text-red-700 hover:bg-red-50"
+                  onClick={handleCancelRegistration}
+                  disabled={cancelRegistrationMutation.isPending}
+                >
+                  {cancelRegistrationMutation.isPending
+                    ? "Cancelling..."
+                    : "Cancel My Registration"}
+                </Button>
               </div>
             ) : isRegistering ? (
               <form onSubmit={handleRegister} className="mb-6 space-y-4">

@@ -228,3 +228,27 @@ export async function isUserRegistered(
     (reg) => reg.eventId === eventId && reg.userId === userId
   );
 }
+
+// Function to cancel an event registration
+export async function cancelEventRegistration(
+  eventId: string,
+  userId: string
+): Promise<boolean> {
+  // Simulate network delay
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  // Find the registration
+  const initialLength = eventRegistrations.length;
+  const registrationIndex = eventRegistrations.findIndex(
+    (reg) => reg.eventId === eventId && reg.userId === userId
+  );
+
+  if (registrationIndex === -1) {
+    throw new Error("Registration not found");
+  }
+
+  // Remove the registration
+  eventRegistrations.splice(registrationIndex, 1);
+
+  return eventRegistrations.length < initialLength;
+}

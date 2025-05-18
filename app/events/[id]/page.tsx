@@ -2,7 +2,7 @@
 
 import { Header } from "@/components/header";
 import { useQuery } from "@tanstack/react-query";
-import { EventDetailClientEnhanced } from "./event-detail-client-enhanced";
+import { EventDetailClientEnhanced } from "./event-detail-client";
 import { useParams } from "next/navigation";
 import { EventService } from "@/lib/event-service";
 import { Event } from "@/lib/events-db";

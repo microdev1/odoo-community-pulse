@@ -223,6 +223,67 @@ export const EventService = {
     return registrationResult;
   },
 
+  // Check if user is registered for an event
+  isUserRegistered: async (
+    eventId: string,
+    userId: string
+  ): Promise<boolean> => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    return await import("./events-db").then(({ isUserRegistered }) => {
+      return isUserRegistered(eventId, userId);
+    });
+  },
+
+  // Cancel a registration for an event
+  cancelRegistration: async (
+    eventId: string,
+    userId: string
+  ): Promise<boolean> => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const event = events.find((e) => e.id === eventId);
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
+    // Get registration details before cancelling
+    const registration = registrations.find(
+      (reg) => reg.eventId === eventId && reg.userId === userId
+    );
+
+    if (!registration) {
+      throw new Error("Registration not found");
+    }
+
+    // Call the actual database function to cancel registration
+    const result = await import("./events-db").then(
+      ({ cancelEventRegistration }) => {
+        return cancelEventRegistration(eventId, userId);
+      }
+    );
+
+    if (result) {
+      try {
+        // Send cancellation confirmation
+        await NotificationService.sendNotification({
+          recipient: {
+            id: userId,
+            name: registration.name,
+            email: registration.email,
+            phone: registration.phone,
+          },
+          event,
+          template: NotificationTemplate.RegistrationCancelled,
+        });
+      } catch (error) {
+        console.error("Failed to send cancellation notification:", error);
+      }
+    }
+
+    return result;
+  },
+
   // Admin functions
   approveEvent: async (id: string): Promise<Event> => {
     await new Promise((resolve) => setTimeout(resolve, 300));
