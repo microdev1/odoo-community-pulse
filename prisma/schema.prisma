@@ -1,0 +1,91 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  email          String   @unique
+  password       String
+  image          String?
+  phone          String?
+  location       String?
+  isVerified     Boolean  @default(false)
+  isAdmin        Boolean  @default(false)
+  isVerifiedOrganizer Boolean @default(false)
+  isBanned       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  events         Event[]  @relation("UserEvents")
+  attendances    Attendance[]
+}
+
+model Event {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  title          String
+  description    String
+  category       EventCategory
+  location       String
+  latitude       Float?
+  longitude      Float?
+  startDate      DateTime
+  endDate        DateTime
+  imageUrl       String?
+  isApproved     Boolean  @default(false)
+  isFlagged      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  createdBy      String   @db.ObjectId
+  user           User     @relation("UserEvents", fields: [createdBy], references: [id])
+  attendances    Attendance[]
+}
+
+model Attendance {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  email          String
+  phone          String
+  peopleCount    Int
+  createdAt      DateTime @default(now())
+
+  eventId        String   @db.ObjectId
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId         String?  @db.ObjectId
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  email          String
+  phone          String?
+  message        String
+  type           NotificationType
+  isSent         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}
+
+enum EventCategory {
+  GARAGE_SALE
+  SPORTS
+  MATCH
+  COMMUNITY_CLASS
+  VOLUNTEER
+  EXHIBITION
+  FESTIVAL
+}
+
+enum NotificationType {
+  EVENT_REMINDER
+  EVENT_UPDATE
+  EVENT_CANCELLATION
+}
