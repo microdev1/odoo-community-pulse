@@ -1,27 +1,26 @@
+"use client";
+
 import { Header } from "@/components/header";
-import { getEventById } from "@/lib/server-events";
-import { EventDetailClient } from "./event-detail-client";
-import { notFound } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { useQuery } from "@tanstack/react-query";
+import { EventDetailClientEnhanced } from "./event-detail-client-enhanced";
+import { notFound, useParams } from "next/navigation";
+import { EventService } from "@/lib/event-service";
+import { format } from "date-fns";
 
-interface EventPageProps {
-  params: {
-    id: string;
-  };
-}
+export default function EventPage() {
+  const params = useParams();
+  const id = params.id as string;
 
-export default async function EventPage({ params }: EventPageProps) {
-  // Await params before destructuring to comply with Next.js 15
-  const { id } = await params;
-  // Force revalidation of this path to ensure fresh data
-  revalidatePath(`/events/${id}`);
-  const event = await getEventById(id);
+  const {
+    data: event,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["event", id],
+    queryFn: () => EventService.getEventById(id),
+  });
 
-  if (!event) {
-    notFound();
-  }
-
-  // Format date for display
+  // Helper functions for formatting
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
       weekday: "long",
@@ -31,7 +30,6 @@ export default async function EventPage({ params }: EventPageProps) {
     }).format(new Date(date));
   };
 
-  // Format time for display
   const formatTime = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
       hour: "numeric",
@@ -41,19 +39,40 @@ export default async function EventPage({ params }: EventPageProps) {
   };
 
   // Calculate event duration
-  const getEventDuration = () => {
+  const getEventDuration = (event: any) => {
     if (!event.endDate) return formatTime(event.date);
-
     return `${formatTime(event.date)} - ${formatTime(event.endDate)}`;
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <div className="container px-4 py-8">
+          <p>Loading event details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !event) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <div className="container px-4 py-8">
+          <p>Event not found or error loading event details.</p>
+        </div>
+      </div>
+    );
+  }
+
   const eventDate = formatDate(event.date);
-  const eventTime = getEventDuration();
+  const eventTime = getEventDuration(event);
 
   return (
     <div className="min-h-screen">
       <Header />
-      <EventDetailClient
+      <EventDetailClientEnhanced
         event={event}
         formattedDate={eventDate}
         formattedTime={eventTime}

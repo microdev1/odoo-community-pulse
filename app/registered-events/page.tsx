@@ -1,47 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Header } from "@/components/header";
 import { EventCard } from "@/components/event-card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
-import { Event, getEventById, eventRegistrations } from "@/lib/events-db";
+import { useUserRegisteredEvents } from "@/lib/event-hooks";
 
 export default function RegisteredEventsPage() {
   const { user, isAuthenticated } = useAuth();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchRegisteredEvents() {
-      if (user?.id) {
-        setIsLoading(true);
-        try {
-          // Get all registrations for the current user
-          const userRegistrations = eventRegistrations.filter(
-            (reg) => reg.userId === user.id
-          );
-
-          // Fetch event details for each registration
-          const eventPromises = userRegistrations.map((reg) =>
-            getEventById(reg.eventId)
-          );
-
-          const resolvedEvents = await Promise.all(eventPromises);
-          setEvents(
-            resolvedEvents.filter((event): event is Event => event !== null)
-          );
-        } catch (error) {
-          console.error("Failed to fetch registered events:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    fetchRegisteredEvents();
-  }, [user?.id]);
+  const { data: events, isLoading } = useUserRegisteredEvents(user?.id || "");
 
   if (!isAuthenticated) {
     return (
@@ -68,7 +36,7 @@ export default function RegisteredEventsPage() {
 
         {isLoading ? (
           <p>Loading your registered events...</p>
-        ) : events.length === 0 ? (
+        ) : events?.length === 0 ? (
           <div className="rounded-lg border p-6 text-center">
             <h2 className="mb-2 text-xl font-medium">No registrations found</h2>
             <p className="mb-4">You haven't registered for any events yet.</p>
@@ -78,9 +46,7 @@ export default function RegisteredEventsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {events.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
+            {events?.map((event) => <EventCard key={event.id} event={event} />)}
           </div>
         )}
       </main>

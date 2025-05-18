@@ -2,11 +2,11 @@
 // This file does NOT use "use client" directive
 
 // Import only the types from events-db
-import type { Event, EventRegistration, EventCategory } from "./events-db";
+import type { Event, EventRegistration } from "./events-db";
 
 // Define server-side data (copy of the data in events-db.ts)
 // Using 'export let' instead of 'export const' so it can be modified by sync functions
-export let events: Event[] = [
+export const events: Event[] = [
   {
     id: "1",
     title: "Community Cleanup Drive",

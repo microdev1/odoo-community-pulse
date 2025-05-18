@@ -1,35 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Header } from "@/components/header";
 import { EventCard } from "@/components/event-card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
-import { getUserEvents, Event } from "@/lib/events-db";
+import { useUserEvents } from "@/lib/event-hooks";
 
 export default function MyEventsPage() {
   const { user, isAuthenticated } = useAuth();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchUserEvents() {
-      if (user?.id) {
-        setIsLoading(true);
-        try {
-          const userEvents = await getUserEvents(user.id);
-          setEvents(userEvents);
-        } catch (error) {
-          console.error("Failed to fetch user events:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    fetchUserEvents();
-  }, [user?.id]);
+  const { data: events, isLoading, error } = useUserEvents(user?.id || "");
 
   if (!isAuthenticated) {
     return (

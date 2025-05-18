@@ -1,7 +1,5 @@
 "use client";
 
-import { User } from "./mock-db";
-
 export type EventCategory =
   | "Garage Sale"
   | "Sports"

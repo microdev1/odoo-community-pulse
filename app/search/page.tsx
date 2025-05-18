@@ -1,14 +1,15 @@
-import { Header } from "@/components/header";
-import { SearchResults } from "./search-results";
+"use client";
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: { q?: string };
-}) {
-  // Await searchParams before accessing it to comply with Next.js 15
-  const { q } = await searchParams;
-  const query = q || "";
+import { Header } from "@/components/header";
+import { useSearchParams } from "next/navigation";
+import { useSearchEvents } from "@/lib/event-hooks";
+import { EventCard } from "@/components/event-card";
+
+export default function SearchPage() {
+  const searchParams = useSearchParams();
+  const query = searchParams.get("q") || "";
+
+  const { data: events, isLoading, error } = useSearchEvents(query);
 
   return (
     <div className="min-h-screen">
@@ -17,7 +18,20 @@ export default async function SearchPage({
         <h1 className="mb-6 text-3xl font-bold">
           Search Results for "{query}"
         </h1>
-        <SearchResults query={query} />
+
+        {isLoading ? (
+          <p>Searching...</p>
+        ) : error ? (
+          <p>Error searching events. Please try again.</p>
+        ) : !events || events.length === 0 ? (
+          <p>No events found matching your search.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {events.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );
