@@ -20,9 +20,19 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Redirect non-admins
-    if (!isLoading && isAuthenticated && !isAdmin) {
-      router.push("/");
+    // Redirect if no longer loading authentication state
+    if (!isLoading) {
+      // Redirect non-authenticated users to login
+      if (!isAuthenticated) {
+        router.push("/auth");
+        return;
+      }
+
+      // Redirect non-admins to home
+      if (!isAdmin) {
+        router.push("/");
+        return;
+      }
     }
 
     async function fetchEvents() {
@@ -39,7 +49,7 @@ export default function AdminPage() {
       }
     }
 
-    if (isAuthenticated) {
+    if (isAuthenticated && isAdmin) {
       fetchEvents();
     } else {
       setIsLoading(false);

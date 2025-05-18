@@ -24,6 +24,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   logout: () => void;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -32,34 +33,53 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   isAdmin: false,
   logout: () => {},
+  refreshAuth: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Check for saved token
+  // Function to load user data from token
+  const loadUserFromToken = async (token: string): Promise<boolean> => {
+    try {
+      const userData = await getCurrentUser(token);
+
+      if (userData) {
+        setUser(userData);
+        return true;
+      } else {
+        // Invalid token
+        localStorage.removeItem("authToken");
+        return false;
+      }
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      localStorage.removeItem("authToken");
+      return false;
+    }
+  };
+
+  // Function to refresh auth state - can be called after successful login/signup
+  const refreshAuth = async (): Promise<void> => {
+    setIsLoading(true);
     const token = localStorage.getItem("authToken");
 
     if (token) {
-      // Verify and load user data
-      getCurrentUser(token)
-        .then((userData) => {
-          if (userData) {
-            setUser(userData);
-          } else {
-            // Invalid token
-            localStorage.removeItem("authToken");
-          }
-        })
-        .catch((error) => {
-          console.error("Error loading user data:", error);
-          localStorage.removeItem("authToken");
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      await loadUserFromToken(token);
+    }
+
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    // Check for saved token on initial load
+    const token = localStorage.getItem("authToken");
+
+    if (token) {
+      loadUserFromToken(token).finally(() => {
+        setIsLoading(false);
+      });
     } else {
       setIsLoading(false);
     }
@@ -78,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isAdmin: user?.isAdmin || false,
         logout,
+        refreshAuth,
       }}
     >
       {children}

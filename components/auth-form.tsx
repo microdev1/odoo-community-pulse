@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { loginUser, registerUser, AuthResponse } from "@/lib/mock-db";
+import { useAuth } from "@/lib/auth-context";
 
 type AuthFormProps = React.ComponentPropsWithoutRef<"div"> & {
   defaultMode?: "login" | "signup";
@@ -25,6 +26,7 @@ export function AuthForm({
   ...props
 }: AuthFormProps) {
   const router = useRouter();
+  const { refreshAuth } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">(defaultMode);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -100,16 +102,31 @@ export function AuthForm({
         // Store token in localStorage for future API calls
         if (response.token) {
           localStorage.setItem("authToken", response.token);
-        }
 
-        // Redirect to appropriate page after a brief delay to show success message
-        setTimeout(() => {
-          if (response.user?.isAdmin) {
-            router.push("/admin");
-          } else {
-            router.push("/my-events");
+          try {
+            // Refresh auth state to reflect the new user login
+            await refreshAuth();
+
+            // Redirect to appropriate page after a brief delay to show success message
+            setTimeout(() => {
+              const redirectUrl = response.user?.isAdmin
+                ? "/admin"
+                : "/my-events";
+              console.log("Redirecting to", redirectUrl);
+
+              // Force a client-side navigation with replacing current history entry
+              router.replace(redirectUrl);
+
+              // For complex redirects or if issues persist, we can also refresh the page
+              // window.location.href = redirectUrl;
+            }, 1500);
+          } catch (err) {
+            console.error("Error refreshing auth state:", err);
+            setError(
+              "Authentication successful, but failed to update session. Please try again."
+            );
           }
-        }, 1500);
+        }
       } else {
         setError(response.message);
       }
