@@ -20,6 +20,7 @@ export enum NotificationTemplate {
   EventCancelled = "event_cancelled",
   RegistrationConfirmation = "registration_confirmation",
   RegistrationCancelled = "registration_cancelled",
+  EventFlagged = "event_flagged",
 }
 
 /**
@@ -74,6 +75,11 @@ export class NotificationService {
       case NotificationTemplate.RegistrationConfirmation:
         subject = `Registration Confirmed: ${data.event.title}`;
         message = `Your registration for ${data.event.title} on ${new Date(data.event.date).toLocaleDateString()} has been confirmed. Thank you!`;
+        break;
+
+      case NotificationTemplate.EventFlagged:
+        subject = `Event Flagged: ${data.event.title}`;
+        message = `Your event ${data.event.title} has been flagged by an administrator. Please review our community guidelines and contact support for more information.`;
         break;
 
       default:

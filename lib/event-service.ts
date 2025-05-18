@@ -354,4 +354,159 @@ export const EventService = {
 
     return rejectedEvent;
   },
+
+  // Additional admin functions
+
+  // Flag inappropriate content
+  flagEvent: async (id: string, reason: string): Promise<Event> => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const eventIndex = events.findIndex((event) => event.id === id);
+    if (eventIndex === -1) {
+      throw new Error("Event not found");
+    }
+
+    const flaggedEvent = {
+      ...events[eventIndex],
+      isFlagged: true,
+      flagReason: reason,
+      updatedAt: new Date(),
+    };
+
+    events[eventIndex] = flaggedEvent;
+
+    // Notify the organizer
+    try {
+      await NotificationService.sendNotification({
+        recipient: {
+          id: flaggedEvent.organizer.id,
+          name: flaggedEvent.organizer.name,
+          email: flaggedEvent.organizer.email,
+          phone: flaggedEvent.organizer.phone,
+        },
+        event: flaggedEvent,
+        template: NotificationTemplate.EventFlagged,
+      });
+    } catch (error) {
+      console.error("Failed to send flag notification:", error);
+    }
+
+    return flaggedEvent;
+  },
+
+  // Remove flag from event
+  unflagEvent: async (id: string): Promise<Event> => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    const eventIndex = events.findIndex((event) => event.id === id);
+    if (eventIndex === -1) {
+      throw new Error("Event not found");
+    }
+
+    const unflaggedEvent = {
+      ...events[eventIndex],
+      isFlagged: false,
+      flagReason: undefined,
+      updatedAt: new Date(),
+    };
+
+    events[eventIndex] = unflaggedEvent;
+    return unflaggedEvent;
+  },
+
+  // Get events by user
+  getEventsByUser: async (userId: string): Promise<Event[]> => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    return events.filter((event) => event.organizer.id === userId);
+  },
+
+  // Assign verified organizer status
+  setUserVerifiedStatus: async (
+    userId: string,
+    isVerified: boolean
+  ): Promise<boolean> => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    // This would update the user in a real database
+    try {
+      // Import users from mock-db
+      const { users } = await import("./mock-db");
+
+      const userIndex = users.findIndex((u) => u.id === userId);
+      if (userIndex === -1) {
+        return false;
+      }
+
+      // Add isVerifiedOrganizer field to the user
+      users[userIndex] = {
+        ...users[userIndex],
+        isVerifiedOrganizer: isVerified,
+      };
+
+      return true;
+    } catch (error) {
+      console.error("Failed to update user verified status:", error);
+      return false;
+    }
+  },
+
+  // Ban user
+  banUser: async (userId: string, reason: string): Promise<boolean> => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    try {
+      // Import users from mock-db
+      const { users } = await import("./mock-db");
+
+      const userIndex = users.findIndex((u) => u.id === userId);
+      if (userIndex === -1) {
+        return false;
+      }
+
+      // Add banned status to the user
+      users[userIndex] = {
+        ...users[userIndex],
+        isBanned: true,
+        banReason: reason,
+        bannedAt: new Date(),
+      };
+
+      // Send notification to the banned user
+      // In a real app, you might want to inform the user via email
+
+      return true;
+    } catch (error) {
+      console.error("Failed to ban user:", error);
+      return false;
+    }
+  },
+
+  // Unban user
+  unbanUser: async (userId: string): Promise<boolean> => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    try {
+      // Import users from mock-db
+      const { users } = await import("./mock-db");
+
+      const userIndex = users.findIndex((u) => u.id === userId);
+      if (userIndex === -1) {
+        return false;
+      }
+
+      // Remove ban status from the user
+      users[userIndex] = {
+        ...users[userIndex],
+        isBanned: false,
+        banReason: undefined,
+        bannedAt: undefined,
+      };
+
+      return true;
+    } catch (error) {
+      console.error("Failed to unban user:", error);
+      return false;
+    }
+  },
 };

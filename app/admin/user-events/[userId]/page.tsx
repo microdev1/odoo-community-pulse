@@ -10,13 +10,18 @@ import { toast } from "sonner";
 import { EventService } from "@/lib/event-service";
 import { Event } from "@/lib/events-db";
 
-export default function AdminPage() {
+interface UserEventsPageProps {
+  params: {
+    userId: string;
+  };
+}
+
+export default function UserEventsPage({ params }: UserEventsPageProps) {
+  const { userId } = params;
   const { isAuthenticated, isAdmin } = useAuth();
   const router = useRouter();
   const [events, setEvents] = useState<Event[]>([]);
-  const [activeTab, setActiveTab] = useState<"pending" | "approved" | "all">(
-    "pending"
-  );
+  const [userName, setUserName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -35,26 +40,34 @@ export default function AdminPage() {
       }
     }
 
-    async function fetchEvents() {
-      if (isAdmin) {
+    async function fetchUserEvents() {
+      if (isAdmin && userId) {
         setIsLoading(true);
         try {
-          const allEvents = await EventService.getEvents();
-          setEvents(allEvents);
+          const userEvents = await EventService.getEventsByUser(userId);
+          setEvents(userEvents);
+
+          // Get user info
+          const { users } = await import("@/lib/mock-db");
+          const user = users.find((u) => u.id === userId);
+          if (user) {
+            setUserName(user.username);
+          }
         } catch (error) {
           console.error("Failed to fetch events:", error);
+          toast.error("Failed to load user events");
         } finally {
           setIsLoading(false);
         }
       }
     }
 
-    if (isAuthenticated && isAdmin) {
-      fetchEvents();
+    if (isAuthenticated && isAdmin && userId) {
+      fetchUserEvents();
     } else {
       setIsLoading(false);
     }
-  }, [isAuthenticated, isAdmin, router, isLoading]);
+  }, [isAuthenticated, isAdmin, router, isLoading, userId]);
 
   const handleApproveEvent = async (eventId: string) => {
     try {
@@ -153,41 +166,19 @@ export default function AdminPage() {
     }
   };
 
-  const filteredEvents =
-    activeTab === "all"
-      ? events
-      : activeTab === "approved"
-        ? events.filter((event) => event.isApproved)
-        : events.filter((event) => !event.isApproved);
-
   if (isLoading) {
     return (
       <div className="min-h-screen">
         <Header />
         <main className="container mx-auto px-4 py-8">
-          <h1 className="mb-6 text-3xl font-bold">Admin Dashboard</h1>
+          <h1 className="mb-6 text-3xl font-bold">User Events</h1>
           <p>Loading...</p>
         </main>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen">
-        <Header />
-        <main className="container mx-auto flex flex-col items-center justify-center px-4 py-16">
-          <h1 className="mb-4 text-2xl font-bold">Admin Access Required</h1>
-          <p className="mb-6 text-center">Please login with an admin account</p>
-          <Button asChild>
-            <a href="/auth">Login</a>
-          </Button>
-        </main>
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
+  if (!isAuthenticated || !isAdmin) {
     return null; // Will redirect via useEffect
   }
 
@@ -195,42 +186,18 @@ export default function AdminPage() {
     <div className="min-h-screen">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <h1 className="mb-6 text-3xl font-bold">Admin Dashboard</h1>
+        <h1 className="mb-6 text-3xl font-bold">
+          Events by {userName || `User #${userId}`}
+        </h1>
 
         <div className="mb-6">
-          <div className="flex space-x-4 mb-6">
-            <Button variant="outline" className="bg-white" asChild>
-              <a href="/admin">Events</a>
-            </Button>
-            <Button variant="outline" className="bg-white" asChild>
-              <a href="/admin/users">User Management</a>
-            </Button>
-          </div>
-
-          <div className="flex space-x-2 border-b">
-            <button
-              className={`px-4 py-2 ${activeTab === "pending" ? "border-b-2 border-primary font-medium" : ""}`}
-              onClick={() => setActiveTab("pending")}
-            >
-              Pending Approval
-            </button>
-            <button
-              className={`px-4 py-2 ${activeTab === "approved" ? "border-b-2 border-primary font-medium" : ""}`}
-              onClick={() => setActiveTab("approved")}
-            >
-              Approved Events
-            </button>
-            <button
-              className={`px-4 py-2 ${activeTab === "all" ? "border-b-2 border-primary font-medium" : ""}`}
-              onClick={() => setActiveTab("all")}
-            >
-              All Events
-            </button>
-          </div>
+          <a href="/admin/users" className="text-blue-500 hover:underline">
+            ← Back to Users
+          </a>
         </div>
 
-        {filteredEvents.length === 0 ? (
-          <p>No events found.</p>
+        {events.length === 0 ? (
+          <p>No events found for this user.</p>
         ) : (
           <div className="overflow-x-auto rounded-lg border">
             <table className="min-w-full divide-y divide-gray-200">
@@ -241,12 +208,6 @@ export default function AdminPage() {
                     className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                   >
                     Event
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                  >
-                    Organizer
                   </th>
                   <th
                     scope="col"
@@ -269,7 +230,7 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {filteredEvents.map((event) => (
+                {events.map((event) => (
                   <tr
                     key={event.id}
                     className={event.isFlagged ? "bg-yellow-50" : ""}
@@ -293,14 +254,6 @@ export default function AdminPage() {
                             {event.category}
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {event.organizer.name}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {event.organizer.email}
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">

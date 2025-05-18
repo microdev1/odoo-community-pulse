@@ -8,6 +8,10 @@ export interface User {
   phone?: string;
   password: string; // In a real app, this would be hashed
   isAdmin: boolean;
+  isVerifiedOrganizer?: boolean;
+  isBanned?: boolean;
+  banReason?: string;
+  bannedAt?: Date;
   createdAt: Date;
 }
 

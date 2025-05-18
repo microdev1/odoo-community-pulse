@@ -36,6 +36,8 @@ export interface Event {
     email: string;
   };
   isApproved: boolean;
+  isFlagged?: boolean;
+  flagReason?: string;
   registrationDeadline?: Date;
   createdAt: Date;
   updatedAt?: Date;
