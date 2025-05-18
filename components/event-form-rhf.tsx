@@ -141,7 +141,7 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
         router.push(`/events/${event.id}`);
       } else {
         // Create new event
-        // const newEvent = await EventService.createEvent(eventData);
+        void (await EventService.createEvent(eventData));
         toast.success("Event created! Awaiting admin approval.");
         router.push(`/my-events`);
       }
