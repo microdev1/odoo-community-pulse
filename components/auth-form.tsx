@@ -102,9 +102,13 @@ export function AuthForm({
           localStorage.setItem("authToken", response.token);
         }
 
-        // Redirect to dashboard after a brief delay to show success message
+        // Redirect to appropriate page after a brief delay to show success message
         setTimeout(() => {
-          router.push("/dashboard");
+          if (response.user?.isAdmin) {
+            router.push("/admin");
+          } else {
+            router.push("/my-events");
+          }
         }, 1500);
       } else {
         setError(response.message);
