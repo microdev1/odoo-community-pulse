@@ -56,9 +56,18 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get full event details including attendances
     const event = await prisma.event.findUnique({
       where: { id: params.id },
-      select: { createdBy: true, isApproved: true },
+      include: {
+        attendances: {
+          select: {
+            name: true,
+            email: true,
+            phone: true,
+          }
+        }
+      },
     });
 
     if (!event) {
@@ -78,6 +87,11 @@ export async function PUT(
       ? (data.isApproved !== undefined ? data.isApproved : event.isApproved)
       : (session.user.isVerifiedOrganizer ? true : false);
 
+    // Check if key details changed (location, date, or cancellation)
+    const locationChanged = location !== event.location;
+    const dateChanged = new Date(startDate).getTime() !== new Date(event.startDate).getTime();
+    const cancelled = data.cancelled === true;
+
     const updatedEvent = await prisma.event.update({
       where: {
         id: params.id,
@@ -96,6 +110,35 @@ export async function PUT(
         updatedAt: new Date(),
       },
     });
+
+    // If key details changed, create notifications for all attendees
+    if (locationChanged || dateChanged || cancelled) {
+      let updateMessage = '';
+      if (cancelled) {
+        updateMessage = `EVENT CANCELLED: "${title}" has been cancelled.`;
+      } else {
+        updateMessage = `EVENT UPDATE: "${title}" has been updated. `;
+        if (locationChanged) {
+          updateMessage += `New location: ${location}. `;
+        }
+        if (dateChanged) {
+          updateMessage += `New date/time: ${new Date(startDate).toLocaleString()}.`;
+        }
+      }
+
+      // Create notifications for all attendees
+      for (const attendee of event.attendances) {
+        await prisma.notification.create({
+          data: {
+            email: attendee.email,
+            phone: attendee.phone || null,
+            message: updateMessage,
+            type: 'EVENT_UPDATE',
+            isSent: false,
+          },
+        });
+      }
+    }
 
     return NextResponse.json(updatedEvent);
   } catch (error) {

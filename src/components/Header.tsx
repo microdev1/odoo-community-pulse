@@ -48,6 +48,16 @@ export default function Header() {
             >
               <CalendarIcon className="mr-1" /> Events
             </Link>
+            {session?.user?.isAdmin && (
+              <Link
+                href="/admin"
+                className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
+                  pathname.startsWith("/admin") ? "bg-green-800" : "hover:bg-green-700"
+                }`}
+              >
+                <GearIcon className="mr-1" /> Admin
+              </Link>
+            )}
             {session?.user && (
               <Link
                 href="/events/create"
@@ -163,7 +173,7 @@ export default function Header() {
             )}
             {session?.user?.isAdmin && (
               <Link
-                href="/admin/dashboard"
+                href="/admin"
                 className={`block px-3 py-2 rounded-md text-base font-medium ${
                   pathname.startsWith("/admin") ? "bg-green-800" : "hover:bg-green-700"
                 }`}
