@@ -1,12 +1,14 @@
 import { Header } from "@/components/header";
 import { SearchResults } from "./search-results";
 
-export default function SearchPage({
+export default async function SearchPage({
   searchParams,
 }: {
   searchParams: { q?: string };
 }) {
-  const query = searchParams.q || "";
+  // Await searchParams before accessing it to comply with Next.js 15
+  const { q } = await searchParams;
+  const query = q || "";
 
   return (
     <div className="min-h-screen">

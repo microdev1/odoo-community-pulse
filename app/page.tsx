@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { Header } from "@/components/header";
-import { getApprovedEvents } from "@/lib/events-db";
+import { getApprovedEvents } from "@/lib/server-events";
 import { EventCard } from "@/components/event-card";
 
 async function EventsList() {

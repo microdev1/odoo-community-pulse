@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -34,6 +34,11 @@ export function EventDetailClient({
   const [registrationError, setRegistrationError] = useState<string | null>(
     null
   );
+
+  // Add effect to refresh the page data when navigating back from other pages
+  useEffect(() => {
+    router.refresh();
+  }, [router]);
 
   const isOrganizer = user?.id === event.organizer.id;
 

@@ -130,6 +130,8 @@ export function EventForm({ event, isEditing = false }: EventFormProps) {
       }
 
       if (result) {
+        // Force a hard navigation to refresh the data
+        router.refresh();
         router.push(`/events/${result.id}`);
       } else {
         setError("Failed to save event. Please try again.");

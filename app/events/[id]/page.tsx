@@ -1,7 +1,8 @@
 import { Header } from "@/components/header";
-import { getEventById } from "@/lib/events-db";
+import { getEventById } from "@/lib/server-events";
 import { EventDetailClient } from "./event-detail-client";
 import { notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 interface EventPageProps {
   params: {
@@ -10,7 +11,11 @@ interface EventPageProps {
 }
 
 export default async function EventPage({ params }: EventPageProps) {
-  const event = await getEventById(params.id);
+  // Await params before destructuring to comply with Next.js 15
+  const { id } = await params;
+  // Force revalidation of this path to ensure fresh data
+  revalidatePath(`/events/${id}`);
+  const event = await getEventById(id);
 
   if (!event) {
     notFound();

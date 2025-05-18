@@ -2,12 +2,14 @@ import { GalleryVerticalEnd } from "lucide-react";
 import { AuthForm } from "@/components/auth-form";
 import Link from "next/link";
 
-export default function AuthPage({
+export default async function AuthPage({
   searchParams,
 }: {
   searchParams: { mode?: string };
 }) {
-  const mode = searchParams.mode === "signup" ? "signup" : "login";
+  // Await searchParams before accessing it to comply with Next.js 15
+  const { mode: modeParam } = await searchParams;
+  const mode = modeParam === "signup" ? "signup" : "login";
 
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
