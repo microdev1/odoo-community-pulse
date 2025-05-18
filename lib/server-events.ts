@@ -10,7 +10,7 @@ import {
 } from "./mock-event-loader";
 
 // Using 'export let' for events instead of 'export const' so it can be modified by sync functions
-export let events: Event[] = [...initialEvents];
+export const events: Event[] = [...initialEvents];
 export const eventRegistrations: EventRegistration[] = [
   ...initialRegistrations,
 ];

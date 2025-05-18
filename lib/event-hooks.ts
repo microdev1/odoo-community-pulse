@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { EventService } from "@/lib/event-service";
-import { Event, EventCategory, EventRegistration } from "@/lib/events-db";
+import { Event, EventRegistration } from "@/lib/events-db";
 
 // Event query hooks
 export function useEvents() {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Header } from "@/components/header";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { EventService } from "@/lib/event-service";
 import { Event } from "@/lib/events-db";
 
 export default function AdminPage() {
-  const { user, isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const router = useRouter();
   const [events, setEvents] = useState<Event[]>([]);
   const [activeTab, setActiveTab] = useState<"pending" | "approved" | "all">(
@@ -43,7 +44,7 @@ export default function AdminPage() {
     } else {
       setIsLoading(false);
     }
-  }, [isAuthenticated, isAdmin, router]);
+  }, [isAuthenticated, isAdmin, router, isLoading]);
 
   const handleApproveEvent = async (eventId: string) => {
     try {
@@ -215,10 +216,12 @@ export default function AdminPage() {
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="flex items-center">
                         <div className="h-10 w-10 flex-shrink-0">
-                          <img
-                            className="h-10 w-10 rounded-full object-cover"
+                          <Image
+                            className="rounded-full object-cover"
                             src={event.imageUrl}
                             alt={event.title}
+                            width={40}
+                            height={40}
                           />
                         </div>
                         <div className="ml-4">

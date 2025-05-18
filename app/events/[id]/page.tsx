@@ -18,7 +18,7 @@ export default function EventPage() {
   } = useQuery({
     queryKey: ["event", id],
     queryFn: () => EventService.getEventById(id),
-  }) as { data: Event | undefined; isLoading: boolean; error: any };
+  }) as { data: Event | undefined; isLoading: boolean; error: Error | null };
 
   // Helper functions for formatting
   const formatDate = (dateStr: string | Date) => {
@@ -39,7 +39,7 @@ export default function EventPage() {
   };
 
   // Calculate event duration
-  const getEventDuration = (event: any) => {
+  const getEventDuration = (event: Event) => {
     if (!event.endDate) return formatTime(event.date);
     return `${formatTime(event.date)} - ${formatTime(event.endDate)}`;
   };

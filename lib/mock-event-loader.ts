@@ -6,7 +6,7 @@ import { Event, EventRegistration } from "./events-db";
  * @param jsonData Input data with date strings
  * @returns Converted object with proper Date objects
  */
-function parseDatesFromJson<T>(jsonData: any): T {
+function parseDatesFromJson<T>(jsonData: Record<string, unknown>): T {
   const result = { ...jsonData };
 
   // Convert date strings to Date objects for top-level properties
@@ -23,7 +23,7 @@ function parseDatesFromJson<T>(jsonData: any): T {
 
     // Handle nested objects
     else if (typeof result[key] === "object" && result[key] !== null) {
-      result[key] = parseDatesFromJson(result[key]);
+      result[key] = parseDatesFromJson(result[key] as Record<string, unknown>);
     }
   }
 

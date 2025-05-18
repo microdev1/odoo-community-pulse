@@ -93,7 +93,7 @@ export function EventForm({ event, isEditing = false }: EventFormProps) {
     try {
       const eventDate = new Date(`${formData.date}T${formData.time}`);
 
-      const eventData: any = {
+      const eventData: Omit<Event, "id" | "createdAt" | "isApproved"> = {
         title: formData.title,
         description: formData.description,
         shortDescription: formData.shortDescription || undefined,

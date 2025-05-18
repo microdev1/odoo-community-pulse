@@ -4,12 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import {
-  Event,
-  EventRegistration,
-  registerForEvent,
-  deleteEvent,
-} from "@/lib/events-db";
+import { Event, registerForEvent, deleteEvent } from "@/lib/events-db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +20,7 @@ export function EventDetailClient({
   formattedDate,
   formattedTime,
 }: EventDetailClientProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [isRegistering, setIsRegistering] = useState(false);
   const [attendees, setAttendees] = useState(1);
@@ -64,8 +59,10 @@ export function EventDetailClient({
 
       setRegistrationSuccess(true);
       setIsRegistering(false);
-    } catch (error: any) {
-      setRegistrationError(error.message || "Failed to register for event");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to register for event";
+      setRegistrationError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -73,7 +70,7 @@ export function EventDetailClient({
 
   const handleDeleteEvent = async () => {
     if (
-      !confirm(
+      !window.confirm(
         "Are you sure you want to delete this event? This action cannot be undone."
       )
     ) {
@@ -85,7 +82,7 @@ export function EventDetailClient({
       router.push("/my-events");
     } catch (error) {
       console.error("Failed to delete event:", error);
-      alert("Failed to delete event. Please try again.");
+      window.alert("Failed to delete event. Please try again.");
     }
   };
 

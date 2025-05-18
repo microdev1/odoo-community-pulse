@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -44,7 +44,11 @@ export function LocationMap({
   // Fix for Leaflet default marker icon in Next.js
   useEffect(() => {
     // This code only runs on the client side
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    // Using type assertion with unknown as intermediate step for safer casting
+    const prototype = L.Icon.Default.prototype as unknown;
+    const iconProto = prototype as { _getIconUrl?: unknown };
+    delete iconProto._getIconUrl;
+
     L.Icon.Default.mergeOptions({
       iconRetinaUrl:
         "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",

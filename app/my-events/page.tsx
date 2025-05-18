@@ -9,7 +9,7 @@ import { useUserEvents } from "@/lib/event-hooks";
 
 export default function MyEventsPage() {
   const { user, isAuthenticated } = useAuth();
-  const { data: events, isLoading, error } = useUserEvents(user?.id || "");
+  const { data: events, isLoading } = useUserEvents(user?.id || "");
 
   if (!isAuthenticated) {
     return (

@@ -4,9 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Event, EventRegistration } from "@/lib/events-db";
+import { Event } from "@/lib/events-db";
 import { EventService } from "@/lib/event-service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +59,7 @@ export function EventDetailClientEnhanced({
       setRegistrationSuccess(true);
       toast.success("Registration successful! You're all set.");
     },
-    onError: (error) => {
+    onError: () => {
       toast.error("Failed to register. Please try again.");
     },
   });

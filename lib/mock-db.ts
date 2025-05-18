@@ -64,7 +64,7 @@ export async function loginUser(
     };
   }
 
-  const { password: _, ...userWithoutPassword } = user;
+  const { password: _password, ...userWithoutPassword } = user;
 
   return {
     success: true,
@@ -114,7 +114,7 @@ export async function registerUser(userData: {
   // Add to mock database
   users.push(newUser);
 
-  const { password: _, ...userWithoutPassword } = newUser;
+  const { password: _password, ...userWithoutPassword } = newUser;
 
   return {
     success: true,
@@ -140,6 +140,6 @@ export async function getCurrentUser(
 
   if (!user) return null;
 
-  const { password: _, ...userWithoutPassword } = user;
+  const { password: _password, ...userWithoutPassword } = user;
   return userWithoutPassword;
 }
