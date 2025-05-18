@@ -45,3 +45,7 @@ A location-aware platform designed to facilitate interaction, visibility, and pa
 ### Event Creation Page
 
 - displays a from with image, title, description, date, time, location, category, registration deadline etc.
+
+## Demo
+
+Check out our demo video at Google Drive: [Demo Video](https://drive.google.com/drive/folders/1TCzT8iX0o_x8m1gQsi8P0v3NzFTTYZlz?usp=sharing)
