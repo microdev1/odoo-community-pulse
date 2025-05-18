@@ -5,12 +5,9 @@ import { useRouter } from "next/navigation";
 import { Header } from "@/components/header";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import {
-  Event,
-  getAllEvents,
-  approveEvent,
-  deleteEvent,
-} from "@/lib/events-db";
+import { toast } from "sonner";
+import { EventService } from "@/lib/event-service";
+import { Event } from "@/lib/events-db";
 
 export default function AdminPage() {
   const { user, isAuthenticated, isAdmin } = useAuth();
@@ -31,7 +28,7 @@ export default function AdminPage() {
       if (isAdmin) {
         setIsLoading(true);
         try {
-          const allEvents = await getAllEvents();
+          const allEvents = await EventService.getEvents();
           setEvents(allEvents);
         } catch (error) {
           console.error("Failed to fetch events:", error);
@@ -50,16 +47,35 @@ export default function AdminPage() {
 
   const handleApproveEvent = async (eventId: string) => {
     try {
-      await approveEvent(eventId);
+      await EventService.approveEvent(eventId);
       // Update the local state
       setEvents((prevEvents) =>
         prevEvents.map((event) =>
           event.id === eventId ? { ...event, isApproved: true } : event
         )
       );
+      toast.success(
+        "Event approved successfully! Notification sent to organizer."
+      );
     } catch (error) {
       console.error("Failed to approve event:", error);
-      alert("Failed to approve event");
+      toast.error("Failed to approve event");
+    }
+  };
+
+  const handleRejectEvent = async (eventId: string) => {
+    try {
+      await EventService.rejectEvent(eventId);
+      // Update the local state
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId ? { ...event, isApproved: false } : event
+        )
+      );
+      toast.success("Event rejected. Notification sent to organizer.");
+    } catch (error) {
+      console.error("Failed to reject event:", error);
+      toast.error("Failed to reject event");
     }
   };
 
@@ -73,14 +89,17 @@ export default function AdminPage() {
     }
 
     try {
-      await deleteEvent(eventId);
+      await EventService.deleteEvent(eventId);
       // Update the local state
       setEvents((prevEvents) =>
         prevEvents.filter((event) => event.id !== eventId)
       );
+      toast.success(
+        "Event deleted successfully! Notifications sent to all registered participants."
+      );
     } catch (error) {
       console.error("Failed to delete event:", error);
-      alert("Failed to delete event");
+      toast.error("Failed to delete event");
     }
   };
 
@@ -246,6 +265,16 @@ export default function AdminPage() {
                             onClick={() => handleApproveEvent(event.id)}
                           >
                             Approve
+                          </Button>
+                        )}
+
+                        {event.isApproved && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRejectEvent(event.id)}
+                          >
+                            Reject
                           </Button>
                         )}
 

@@ -7,6 +7,10 @@ import {
   EventRegistration,
   eventRegistrations as registrations,
 } from "./events-db";
+import {
+  NotificationService,
+  NotificationTemplate,
+} from "./notification-service";
 
 // Data service functions to replace direct DB manipulation
 
@@ -94,6 +98,32 @@ export const EventService = {
     };
 
     events[eventIndex] = updatedEvent;
+
+    // Get all registrations for this event
+    const eventRegistrations = registrations.filter(
+      (reg) => reg.eventId === id
+    );
+
+    // Notify all registered participants about the update
+    if (eventRegistrations.length > 0) {
+      try {
+        await NotificationService.notifyEventUpdated(
+          updatedEvent,
+          eventRegistrations
+        );
+
+        // Reschedule reminders if the date changed
+        if (eventData.date && eventData.date !== events[eventIndex].date) {
+          await NotificationService.scheduleEventReminders(
+            updatedEvent,
+            eventRegistrations
+          );
+        }
+      } catch (error) {
+        console.error("Failed to send update notifications:", error);
+      }
+    }
+
     return updatedEvent;
   },
 
@@ -105,6 +135,13 @@ export const EventService = {
       return false;
     }
 
+    const eventToDelete = events[eventIndex];
+
+    // Get all registrations before removing them
+    const eventRegistrations = registrations.filter(
+      (reg) => reg.eventId === id
+    );
+
     events.splice(eventIndex, 1);
 
     // Also remove any registrations for this event
@@ -113,6 +150,18 @@ export const EventService = {
     );
     registrations.length = 0;
     registrations.push(...updatedRegistrations);
+
+    // Notify all registered participants about the cancellation
+    if (eventRegistrations.length > 0) {
+      try {
+        await NotificationService.notifyEventCancelled(
+          eventToDelete,
+          eventRegistrations
+        );
+      } catch (error) {
+        console.error("Failed to send cancellation notifications:", error);
+      }
+    }
 
     return true;
   },
@@ -127,16 +176,51 @@ export const EventService = {
     const { eventId, userId, name, email, phone, additionalAttendees } =
       registration;
 
+    const event = events.find((e) => e.id === eventId);
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
     // Call the actual database function with the correct parameters
-    return import("./events-db").then(({ registerForEvent }) => {
-      return registerForEvent(eventId, {
-        userId,
-        name,
-        email,
-        phone,
-        additionalAttendees: additionalAttendees || 0,
+    const registrationResult = await import("./events-db").then(
+      ({ registerForEvent }) => {
+        return registerForEvent(eventId, {
+          userId,
+          name,
+          email,
+          phone,
+          additionalAttendees: additionalAttendees || 0,
+        });
+      }
+    );
+
+    try {
+      // Send registration confirmation
+      await NotificationService.sendRegistrationConfirmation(
+        event,
+        registrationResult
+      );
+
+      // Schedule a reminder notification
+      const reminderDate = new Date(event.date);
+      reminderDate.setDate(reminderDate.getDate() - 1);
+
+      await NotificationService.scheduleNotification({
+        recipient: {
+          id: userId,
+          name,
+          email,
+          phone,
+        },
+        event,
+        template: NotificationTemplate.EventReminder,
+        scheduledFor: reminderDate,
       });
-    });
+    } catch (error) {
+      console.error("Failed to send notifications:", error);
+    }
+
+    return registrationResult;
   },
 
   // Admin functions
@@ -148,13 +232,31 @@ export const EventService = {
       throw new Error("Event not found");
     }
 
-    events[eventIndex] = {
+    const approvedEvent = {
       ...events[eventIndex],
       isApproved: true,
       updatedAt: new Date(),
     };
 
-    return events[eventIndex];
+    events[eventIndex] = approvedEvent;
+
+    // Send notification to event organizer
+    try {
+      await NotificationService.sendNotification({
+        recipient: {
+          id: approvedEvent.organizer.id,
+          name: approvedEvent.organizer.name,
+          email: approvedEvent.organizer.email,
+          phone: approvedEvent.organizer.phone,
+        },
+        event: approvedEvent,
+        template: NotificationTemplate.EventUpdated,
+      });
+    } catch (error) {
+      console.error("Failed to send approval notification:", error);
+    }
+
+    return approvedEvent;
   },
 
   rejectEvent: async (id: string): Promise<Event> => {
@@ -165,12 +267,30 @@ export const EventService = {
       throw new Error("Event not found");
     }
 
-    events[eventIndex] = {
+    const rejectedEvent = {
       ...events[eventIndex],
       isApproved: false,
       updatedAt: new Date(),
     };
 
-    return events[eventIndex];
+    events[eventIndex] = rejectedEvent;
+
+    // Send notification to event organizer
+    try {
+      await NotificationService.sendNotification({
+        recipient: {
+          id: rejectedEvent.organizer.id,
+          name: rejectedEvent.organizer.name,
+          email: rejectedEvent.organizer.email,
+          phone: rejectedEvent.organizer.phone,
+        },
+        event: rejectedEvent,
+        template: NotificationTemplate.EventUpdated, // You could create a specific rejection template
+      });
+    } catch (error) {
+      console.error("Failed to send rejection notification:", error);
+    }
+
+    return rejectedEvent;
   },
 };

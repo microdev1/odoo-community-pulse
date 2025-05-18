@@ -39,7 +39,7 @@ export default function MyEventsPage() {
 
         {isLoading ? (
           <p>Loading your events...</p>
-        ) : events.length === 0 ? (
+        ) : events?.length === 0 ? (
           <div className="rounded-lg border p-6 text-center">
             <h2 className="mb-2 text-xl font-medium">No events found</h2>
             <p className="mb-4">You haven't created any events yet.</p>
@@ -49,7 +49,7 @@ export default function MyEventsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {events.map((event) => (
+            {events?.map((event) => (
               <div key={event.id} className="flex flex-col">
                 <EventCard event={event} />
                 <div className="mt-2 text-sm">
