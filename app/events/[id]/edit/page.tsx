@@ -1,26 +1,26 @@
+"use client";
+
 import { Header } from "@/components/header";
 import { EventForm } from "@/components/event-form";
 import { notFound } from "next/navigation";
-// Removed import of revalidatePath as it shouldn't be used during rendering
 
 interface EditEventPageProps {
   params: {
     id: string;
   };
 }
+import { trpc } from "@/lib/trpc";
+import React from "react";
 
-export default async function EditEventPage({ params }: EditEventPageProps) {
-  // Await params before destructuring to comply with Next.js 15
-  const { id } = await params;
-  // Don't call revalidatePath during rendering
-  const event = await fetch(
-    `${process.env.NEXT_PUBLIC_APP_URL}/api/trpc/event.getById?input=${JSON.stringify({ id })}`
-  )
-    .then((res) => res.json())
-    .then((res) => res.result.data);
+function EditEventClient({ id }: { id: string }) {
+  const { data: event, isLoading } = trpc.event.getById.useQuery({ id });
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   if (!event) {
-    notFound();
+    return notFound();
   }
 
   return (
@@ -32,4 +32,9 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
       </main>
     </div>
   );
+}
+
+// Server component wrapper
+export default function EditEventPage({ params }: EditEventPageProps) {
+  return <EditEventClient id={params.id} />;
 }

@@ -3,6 +3,13 @@ import { InferSelectModel } from "drizzle-orm";
 
 export type DbEvent = InferSelectModel<typeof events>;
 
+export interface TicketTier {
+  id: string;
+  name: string;
+  price: number;
+  description: string | null;
+}
+
 export interface EventWithDetails extends Omit<DbEvent, "organizer"> {
   organizer?: {
     id: string;
@@ -15,12 +22,7 @@ export interface EventWithDetails extends Omit<DbEvent, "organizer"> {
     banReason?: string | null;
     createdAt?: string | null;
   };
-  ticketTiers?: {
-    id: string;
-    name: string;
-    price: number;
-    description: string | null;
-  }[];
+  ticketTiers?: TicketTier[];
   isFlagged?: boolean;
   flagReason?: string;
 }

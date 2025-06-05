@@ -30,7 +30,10 @@ export default function EventPage() {
   };
 
   // Calculate event duration
-  const getEventDuration = (event: Event) => {
+  const getEventDuration = (event: {
+    date: string;
+    endDate?: string | null;
+  }) => {
     if (!event.endDate) return formatTime(event.date);
     return `${formatTime(event.date)} - ${formatTime(event.endDate)}`;
   };
@@ -69,26 +72,15 @@ export default function EventPage() {
     );
   }
 
-  // Convert date strings to Date objects if necessary
-  const eventObj = {
-    ...event,
-    date: new Date(event.date),
-    endDate: event.endDate ? new Date(event.endDate) : undefined,
-    registrationDeadline: event.registrationDeadline
-      ? new Date(event.registrationDeadline)
-      : undefined,
-    createdAt: new Date(event.createdAt),
-    updatedAt: event.updatedAt ? new Date(event.updatedAt) : undefined,
-  };
-
-  const eventDate = formatDate(eventObj.date);
-  const eventTime = getEventDuration(eventObj);
+  // Format the dates without converting the entire object
+  const eventDate = formatDate(new Date(event.date));
+  const eventTime = getEventDuration(event);
 
   return (
     <div className="min-h-screen">
       <Header />
       <EventDetailClientEnhanced
-        event={eventObj}
+        event={event}
         formattedDate={eventDate}
         formattedTime={eventTime}
       />

@@ -1,6 +1,5 @@
 "use client";
 
-import { LocationMap } from "@/components/location-map";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,11 +14,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth-context";
-import { useCancelRegistration } from "@/lib/event-hooks";
-import type { TicketTier, Event } from "@/lib/events-db";
-import { Label } from "@radix-ui/react-label";
-import { Link } from "lucide-react";
-import { useRouter } from "next/router";
+import { EventWithDetails as Event, TicketTier } from "@/lib/types";
+import { trpc } from "@/lib/trpc";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -28,6 +27,8 @@ interface EventDetailClientProps {
   formattedDate: string;
   formattedTime: string;
 }
+
+import { LocationMap } from "@/components/location-map";
 
 export function EventDetailClientEnhanced({
   event,
@@ -44,7 +45,7 @@ export function EventDetailClientEnhanced({
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
 
-  const isOrganizer = user?.id === event.organizer.id;
+  const isOrganizer = user?.id === event.organizer?.id;
 
   // Check if user is registered for this event
   const { data: isUserRegisteredResult } = trpc.event.isUserRegistered.useQuery(
@@ -54,7 +55,7 @@ export function EventDetailClientEnhanced({
 
   useEffect(() => {
     if (isUserRegisteredResult !== undefined) {
-      setIsRegistered(isUserRegisteredResult);
+      setIsRegistered(!!isUserRegisteredResult);
     }
   }, [isUserRegisteredResult]);
 
@@ -81,7 +82,15 @@ export function EventDetailClientEnhanced({
   });
 
   // Cancel registration mutation
-  const cancelRegistrationMutation = useCancelRegistration();
+  const cancelRegistrationMutation = trpc.event.cancelRegistration.useMutation({
+    onSuccess: () => {
+      setIsRegistered(false);
+      toast.success("Registration cancelled successfully");
+    },
+    onError: () => {
+      toast.error("Failed to cancel registration");
+    },
+  });
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +112,7 @@ export function EventDetailClientEnhanced({
   };
 
   const handleDelete = () => {
-    deleteMutation.mutate(event.id);
+    deleteMutation.mutate({ id: event.id });
   };
 
   const handleCancelRegistration = () => {
@@ -112,14 +121,10 @@ export function EventDetailClientEnhanced({
       return;
     }
 
-    cancelRegistrationMutation.mutate(
-      { eventId: event.id, userId: user.id },
-      {
-        onSuccess: () => {
-          setIsRegistered(false);
-        },
-      }
-    );
+    cancelRegistrationMutation.mutate({
+      eventId: event.id,
+      userId: user.id,
+    });
   };
 
   return (
@@ -127,7 +132,7 @@ export function EventDetailClientEnhanced({
       {/* Hero Section */}
       <div
         className="h-64 bg-cover bg-center md:h-80"
-        style={{ backgroundImage: `url(${event.imageUrl})` }}
+        style={{ backgroundImage: `url(${event.imageUrl || ""})` }}
       >
         <div className="container mx-auto flex h-full items-end px-4 pb-8">
           <div className="bg-background/80 p-4 backdrop-blur-sm md:max-w-2xl">
@@ -146,13 +151,7 @@ export function EventDetailClientEnhanced({
             {/* Map Component */}
             <div className="mt-8">
               <h2 className="mb-4 text-xl font-semibold">Location</h2>
-              <LocationMap
-                latitude={event.location.latitude}
-                longitude={event.location.longitude}
-                address={event.location.address}
-                height="300px"
-                className="rounded-lg border"
-              />
+              <LocationMap address={event.locationAddress} />
             </div>
           </div>
 
@@ -191,7 +190,7 @@ export function EventDetailClientEnhanced({
                     <div className="space-y-3">
                       <Label htmlFor="ticketTier">Select Ticket Tier</Label>
                       <div className="space-y-3">
-                        {event.ticketTiers.map((tier) => (
+                        {event.ticketTiers.map((tier: TicketTier) => (
                           <div
                             key={tier.id}
                             className={`cursor-pointer rounded-md border p-3 transition-colors ${
@@ -242,8 +241,12 @@ export function EventDetailClientEnhanced({
                     type="number"
                     min="1"
                     max="10"
-                    value={attendees}
-                    onChange={(e) => setAttendees(parseInt(e.target.value))}
+                    value={attendees || 1}
+                    onChange={(e) =>
+                      setAttendees(
+                        e.target.value ? parseInt(e.target.value) : 1
+                      )
+                    }
                   />
                 </div>
 
@@ -272,7 +275,7 @@ export function EventDetailClientEnhanced({
                     : event.isFree
                       ? "Complete Registration"
                       : selectedTicketTierId && event.ticketTiers
-                        ? `Complete Registration ($${(event.ticketTiers.find((t) => t.id === selectedTicketTierId)?.price || 0).toFixed(2)})`
+                        ? `Complete Registration ($${(event.ticketTiers.find((t: TicketTier) => t.id === selectedTicketTierId)?.price || 0).toFixed(2)})`
                         : "Complete Registration"}
                 </Button>
               </form>
@@ -296,7 +299,7 @@ export function EventDetailClientEnhanced({
 
               <div>
                 <h3 className="font-medium">Location</h3>
-                <p>{event.location.address}</p>
+                <p>{event.locationAddress}</p>
               </div>
 
               <div>
@@ -327,7 +330,7 @@ export function EventDetailClientEnhanced({
                       )}
                     </div>
                     <div className="space-y-2 divide-y divide-amber-100">
-                      {event.ticketTiers.map((tier) => (
+                      {event.ticketTiers.map((tier: TicketTier) => (
                         <div
                           key={tier.id}
                           className="flex flex-col pt-2 first:pt-0"
@@ -354,9 +357,13 @@ export function EventDetailClientEnhanced({
 
               <div>
                 <h3 className="font-medium">Organizer</h3>
-                <p>{event.organizer.name}</p>
-                <p>{event.organizer.email}</p>
-                {event.organizer.phone && <p>{event.organizer.phone}</p>}
+                {event.organizer && (
+                  <>
+                    <p>{event.organizer.username}</p>
+                    <p>{event.organizer.email}</p>
+                    {event.organizer.phone && <p>{event.organizer.phone}</p>}
+                  </>
+                )}
               </div>
 
               {event.registrationDeadline && (

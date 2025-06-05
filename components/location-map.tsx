@@ -1,67 +1,73 @@
 "use client";
 
-import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, Marker, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
+import { Icon, LatLngTuple } from "leaflet";
+import { useEffect, useState } from "react";
+
+// Fix for default marker icon in Leaflet with Next.js
+const DEFAULT_CENTER: LatLngTuple = [51.505, -0.09];
 
 interface LocationMapProps {
-  latitude?: number;
-  longitude?: number;
   address: string;
-  className?: string;
-  height?: string;
 }
 
-function LocationMarker({ position }: { position: [number, number] }) {
-  const map = useMap();
+export function LocationMap({ address }: LocationMapProps) {
+  const [coordinates, setCoordinates] = useState<LatLngTuple | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    map.flyTo(position, map.getZoom());
-  }, [map, position]);
+    const geocodeAddress = async () => {
+      try {
+        // Using OpenStreetMap Nominatim API for geocoding
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+            address
+          )}`
+        );
+        const data = await response.json();
+
+        if (data && data[0]) {
+          setCoordinates([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+        } else {
+          setError("Location not found");
+        }
+      } catch (err) {
+        setError("Error loading map");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (address) {
+      geocodeAddress();
+    }
+  }, [address]);
+
+  // Custom icon setup
+  const customIcon = new Icon({
+    iconUrl: "/marker-icon.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+  });
+
+  if (loading) {
+    return <div className="h-64 w-full animate-pulse bg-gray-200 rounded-lg" />;
+  }
+
+  if (error) {
+    return (
+      <div className="h-64 w-full flex items-center justify-center bg-gray-100 rounded-lg text-gray-500">
+        {error}
+      </div>
+    );
+  }
 
   return (
-    <Marker position={position}>
-      <Popup>Event Location</Popup>
-    </Marker>
-  );
-}
-
-export function LocationMap({
-  latitude,
-  longitude,
-  address,
-  className,
-  height = "300px",
-}: LocationMapProps) {
-  // Default to a central location if coordinates not provided
-  const defaultPosition: [number, number] = [40.7128, -74.006]; // New York
-  const hasCoordinates = latitude !== undefined && longitude !== undefined;
-  const position: [number, number] = hasCoordinates
-    ? [latitude, longitude]
-    : defaultPosition;
-
-  // Fix for Leaflet default marker icon in Next.js
-  useEffect(() => {
-    // This code only runs on the client side
-    // Using type assertion with unknown as intermediate step for safer casting
-    const prototype = L.Icon.Default.prototype as unknown;
-    const iconProto = prototype as { _getIconUrl?: unknown };
-    delete iconProto._getIconUrl;
-
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl:
-        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      shadowUrl:
-        "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-    });
-  }, []);
-
-  return (
-    <div style={{ height }} className={className}>
+    <div className="h-64 w-full rounded-lg overflow-hidden">
       <MapContainer
-        center={position}
+        center={coordinates || DEFAULT_CENTER}
         zoom={13}
         scrollWheelZoom={false}
         style={{ height: "100%", width: "100%" }}
@@ -70,9 +76,8 @@ export function LocationMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <LocationMarker position={position} />
+        {coordinates && <Marker position={coordinates} icon={customIcon} />}
       </MapContainer>
-      <p className="mt-2 text-sm text-muted-foreground">{address}</p>
     </div>
   );
 }
