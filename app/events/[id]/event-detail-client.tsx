@@ -358,7 +358,7 @@ export function EventDetailClientEnhanced({
                     </div>
                   </div>
                 ) : (
-                  <p>${event.price?.toFixed(2)}</p>
+                  <p>Not available</p>
                 )}
               </div>
 

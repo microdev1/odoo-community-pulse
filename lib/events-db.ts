@@ -48,8 +48,7 @@ export interface Event {
   flagReason?: string;
   registrationDeadline?: Date;
   isFree: boolean;
-  price?: number; // For backward compatibility
-  ticketTiers?: TicketTier[]; // New field for ticket tiers
+  ticketTiers?: TicketTier[];
   createdAt: Date;
   updatedAt?: Date;
 }

@@ -45,7 +45,6 @@ const eventSchema = z.object({
   registrationDeadline: z.string().optional(),
   registrationDeadlineTime: z.string().optional(),
   isFree: z.boolean(),
-  price: z.number().min(0, "Price must be a positive number").optional(),
   ticketTiers: z.array(ticketTierSchema).optional(),
 });
 
@@ -88,7 +87,6 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
           ? format(new Date(event.registrationDeadline), "HH:mm")
           : undefined,
         isFree: event.isFree,
-        price: event.price,
         ticketTiers: event.ticketTiers || [],
       }
     : {
@@ -194,7 +192,6 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
         },
         registrationDeadline,
         isFree: data.isFree,
-        price: data.isFree ? undefined : data.price,
         // Add ticket tiers only if it's not a free event
         ticketTiers: data.isFree
           ? undefined
@@ -373,27 +370,6 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
 
           {!isFreeEvent && (
             <div className="space-y-6">
-              <div>
-                <Label htmlFor="price">Default Event Price ($)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="19.99"
-                  {...register("price", { valueAsNumber: true })}
-                />
-                {errors.price && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.price.message}
-                  </p>
-                )}
-                <p className="mt-1 text-xs text-muted-foreground">
-                  This is the default price shown when no ticket tiers are
-                  selected
-                </p>
-              </div>
-
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium">Ticket Tiers</h3>

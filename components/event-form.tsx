@@ -52,7 +52,6 @@ export function EventForm({ event, isEditing = false }: EventFormProps) {
           .substring(0, 5)
       : "",
     isFree: event?.isFree !== undefined ? event.isFree : true,
-    price: event?.price || 0,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,7 +111,6 @@ export function EventForm({ event, isEditing = false }: EventFormProps) {
           phone: user.phone,
         },
         isFree: formData.isFree,
-        price: formData.isFree ? undefined : formData.price,
       };
 
       if (formData.endDate && formData.endTime) {
@@ -314,18 +312,9 @@ export function EventForm({ event, isEditing = false }: EventFormProps) {
 
           {!formData.isFree && (
             <div className="grid gap-2">
-              <Label htmlFor="price">Event Price ($) *</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                required={!formData.isFree}
-                value={formData.price}
-                onChange={handleInputChange}
-                placeholder="19.99"
-                disabled={isSubmitting}
-              />
+              <p className="text-sm text-muted-foreground">
+                You'll need to add ticket tiers in the next step.
+              </p>
             </div>
           )}
         </div>

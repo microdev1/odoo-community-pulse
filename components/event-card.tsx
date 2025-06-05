@@ -51,7 +51,7 @@ export function EventCard({ event, className }: EventCardProps) {
                 ? "Free"
                 : event.ticketTiers && event.ticketTiers.length > 0
                   ? `From $${Math.min(...event.ticketTiers.map((t) => t.price)).toFixed(2)}`
-                  : `$${event.price?.toFixed(2)}`}
+                  : "$0.00"}
             </span>
           </div>
           <h3 className="mb-1 text-lg font-bold">{event.title}</h3>
