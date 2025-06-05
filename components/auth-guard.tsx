@@ -14,12 +14,16 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     // Only run after authentication state is loaded
-    if (!isLoading && !isAuthenticated) {
-      router.push("/auth");
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        // Redirect to auth page with the current path as returnUrl
+        const currentPath = window.location.pathname;
+        router.replace(`/auth?returnUrl=${encodeURIComponent(currentPath)}`);
+      }
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // If still loading or not authenticated, don't render anything
+  // If still loading or not authenticated, show loading state
   if (isLoading || !isAuthenticated) {
     return (
       <div className="flex h-screen items-center justify-center">

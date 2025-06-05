@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { trpc } from "@/lib/trpc";
+import { AuthErrorBoundary } from "./auth-error-boundary";
 
 type AuthFormProps = React.ComponentPropsWithoutRef<"div"> & {
   defaultMode?: "login" | "signup";
@@ -27,6 +28,10 @@ export function AuthForm({
 }: AuthFormProps) {
   const router = useRouter();
   const { refreshAuth } = useAuth();
+  const returnUrl =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("returnUrl")
+      : null;
   const [mode, setMode] = useState<"login" | "signup">(defaultMode);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -92,34 +97,26 @@ export function AuthForm({
           password: formData.password,
         });
 
-        if (result.success) {
+        if (result.success && "token" in result) {
           setSuccess(result.message);
-          console.log("Login successful:", result);
 
-          // Store token in localStorage for future API calls
-          if (result.token) {
-            localStorage.setItem("authToken", result.token);
+          // Let auth context handle setting the token securely
+          document.cookie = `authToken=${result.token}; path=/; secure; samesite=strict; max-age=604800`; // 7 days
 
-            try {
-              // Refresh auth state to reflect the new user login
-              await refreshAuth();
+          try {
+            // Refresh auth state to reflect the new user login
+            await refreshAuth();
 
-              // Redirect to appropriate page after a brief delay to show success message
-              setTimeout(() => {
-                const redirectUrl = result.user?.isAdmin
-                  ? "/admin"
-                  : "/my-events";
-                console.log("Redirecting to", redirectUrl);
-
-                // Force a client-side navigation with replacing current history entry
-                router.replace(redirectUrl);
-              }, 1500);
-            } catch (err) {
-              console.error("Error refreshing auth state:", err);
-              setError(
-                "Authentication successful, but failed to update session. Please try again."
-              );
-            }
+            // Redirect to the return URL or default page
+            const redirectUrl =
+              returnUrl || (result.user?.isAdmin ? "/admin" : "/my-events");
+            console.log("Redirecting to", redirectUrl);
+            router.replace(redirectUrl);
+          } catch (err) {
+            console.error("Error refreshing auth state:", err);
+            setError(
+              "Authentication successful, but failed to update session. Please try again."
+            );
           }
         } else {
           setError(result.message);
@@ -133,34 +130,25 @@ export function AuthForm({
           phone: formData.phone || undefined,
         });
 
-        if (result.success) {
+        if (result.success && "token" in result) {
           setSuccess(result.message);
-          console.log("Registration successful:", result);
 
-          // Store token in localStorage for future API calls
-          if (result.token) {
-            localStorage.setItem("authToken", result.token);
+          // Let auth context handle setting the token securely
+          document.cookie = `authToken=${result.token}; path=/; secure; samesite=strict; max-age=604800`; // 7 days
 
-            try {
-              // Refresh auth state to reflect the new user login
-              await refreshAuth();
+          try {
+            // Refresh auth state to reflect the new user login
+            await refreshAuth();
 
-              // Redirect to appropriate page after a brief delay to show success message
-              setTimeout(() => {
-                const redirectUrl = result.user?.isAdmin
-                  ? "/admin"
-                  : "/my-events";
-                console.log("Redirecting to", redirectUrl);
-
-                // Force a client-side navigation with replacing current history entry
-                router.replace(redirectUrl);
-              }, 1500);
-            } catch (err) {
-              console.error("Error refreshing auth state:", err);
-              setError(
-                "Authentication successful, but failed to update session. Please try again."
-              );
-            }
+            // Redirect to my-events by default for new users
+            const redirectUrl = returnUrl || "/my-events";
+            console.log("Redirecting to", redirectUrl);
+            router.replace(redirectUrl);
+          } catch (err) {
+            console.error("Error refreshing auth state:", err);
+            setError(
+              "Authentication successful, but failed to update session. Please try again."
+            );
           }
         } else {
           setError(result.message);
@@ -175,107 +163,109 @@ export function AuthForm({
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <div className="mb-4 rounded bg-red-50 p-3 text-sm text-red-500">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="mb-4 rounded bg-green-50 p-3 text-sm text-green-500">
-              {success}
-            </div>
-          )}
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-6">
+    <AuthErrorBoundary>
+      <div className={cn("flex flex-col gap-6", className)} {...props}>
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl">{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {error && (
+              <div className="mb-4 rounded bg-red-50 p-3 text-sm text-red-500">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="mb-4 rounded bg-green-50 p-3 text-sm text-green-500">
+                {success}
+              </div>
+            )}
+            <form onSubmit={handleSubmit}>
               <div className="grid gap-6">
-                {!isLogin && (
-                  <>
-                    <div className="grid gap-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        required
-                        placeholder="you@example.com"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        disabled={isLoading}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="+1234567890"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </>
-                )}
-                <div className="grid gap-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    type="text"
-                    required
-                    value={formData.username}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <div className="flex items-center">
-                    <Label htmlFor="password">Password</Label>
-                    {isLogin && (
-                      <a
-                        href="#"
-                        className="ml-auto text-sm underline-offset-4 hover:underline"
-                      >
-                        Forgot your password?
-                      </a>
-                    )}
+                <div className="grid gap-6">
+                  {!isLogin && (
+                    <>
+                      <div className="grid gap-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          required
+                          placeholder="you@example.com"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          disabled={isLoading}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="+1234567890"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          disabled={isLoading}
+                        />
+                      </div>
+                    </>
+                  )}
+                  <div className="grid gap-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      type="text"
+                      required
+                      value={formData.username}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                    />
                   </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    disabled={isLoading}
-                  />
+                  <div className="grid gap-2">
+                    <div className="flex items-center">
+                      <Label htmlFor="password">Password</Label>
+                      {isLogin && (
+                        <a
+                          href="#"
+                          className="ml-auto text-sm underline-offset-4 hover:underline"
+                        >
+                          Forgot your password?
+                        </a>
+                      )}
+                    </div>
+                    <Input
+                      id="password"
+                      type="password"
+                      required
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Processing..." : submitButtonText}
+                  </Button>
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Processing..." : submitButtonText}
-                </Button>
+                <div className="text-center text-sm">
+                  <button
+                    type="button"
+                    onClick={handleToggleMode}
+                    className="underline underline-offset-4 hover:text-primary"
+                    disabled={isLoading}
+                  >
+                    {toggleText}
+                  </button>
+                </div>
               </div>
-              <div className="text-center text-sm">
-                <button
-                  type="button"
-                  onClick={handleToggleMode}
-                  className="underline underline-offset-4 hover:text-primary"
-                  disabled={isLoading}
-                >
-                  {toggleText}
-                </button>
-              </div>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+            </form>
+          </CardContent>
+        </Card>
+        <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
+          By clicking continue, you agree to our{" "}
+          <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+        </div>
       </div>
-    </div>
+    </AuthErrorBoundary>
   );
 }

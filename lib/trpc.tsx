@@ -17,11 +17,14 @@ export function TRPCProvider({ children }: { children: ReactNode }) {
       links: [
         httpBatchLink({
           url: "/api/trpc",
-          // Get the token from localStorage and add it to the headers
           headers() {
-            const token = localStorage.getItem("authToken");
+            // Only get token from cookie
+            const token = document.cookie
+              .split("; ")
+              .find((row) => row.startsWith("authToken="))
+              ?.split("=")[1];
             return {
-              authorization: token ? `Bearer ${token}` : "",
+              Authorization: token ? `Bearer ${token}` : "",
             };
           },
         }),

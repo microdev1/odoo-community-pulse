@@ -7,30 +7,41 @@ import {
   banUser,
   unbanUser,
 } from "@/server/services/user-service";
-import { publicProcedure, router } from "../trpc";
+import {
+  publicProcedure,
+  privateProcedure,
+  adminProcedure,
+  router,
+} from "../trpc";
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 
 export const userRouter = router({
   // Get user by ID
-  getById: publicProcedure
+  getById: privateProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input, ctx }) => {
-      // Check if user is admin or requesting their own info
-      if (!ctx.user || (ctx.user.id !== input.id && !ctx.user.isAdmin)) {
-        throw new Error("Unauthorized");
+      // Check if user is requesting their own info or is admin
+      if (ctx.user.id !== input.id && !ctx.user.isAdmin) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You can only view your own user info",
+        });
       }
 
       const users = await getAllUsers();
-      return users.find((user) => user.id === input.id);
+      const user = users.find((user) => user.id === input.id);
+      if (!user) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found",
+        });
+      }
+      return user;
     }),
 
   // Get all users (admin only)
-  getAllUsers: publicProcedure.query(async ({ ctx }) => {
-    // Check if user is admin
-    if (!ctx.user?.isAdmin) {
-      throw new Error("Unauthorized");
-    }
-
+  getAllUsers: adminProcedure.query(async () => {
     return await getAllUsers();
   }),
 
@@ -72,50 +83,35 @@ export const userRouter = router({
     }),
 
   // Admin functions
-  setVerifiedStatus: publicProcedure
+  setVerifiedStatus: adminProcedure
     .input(
       z.object({
         userId: z.string(),
         isVerified: z.boolean(),
       })
     )
-    .mutation(async ({ input, ctx }) => {
-      // Check if user is admin
-      if (!ctx.user?.isAdmin) {
-        throw new Error("Unauthorized");
-      }
-
+    .mutation(async ({ input }) => {
       return await setVerifiedStatus(input.userId, input.isVerified);
     }),
 
-  banUser: publicProcedure
+  banUser: adminProcedure
     .input(
       z.object({
         userId: z.string(),
         reason: z.string(),
       })
     )
-    .mutation(async ({ input, ctx }) => {
-      // Check if user is admin
-      if (!ctx.user?.isAdmin) {
-        throw new Error("Unauthorized");
-      }
-
+    .mutation(async ({ input }) => {
       return await banUser(input.userId, input.reason);
     }),
 
-  unbanUser: publicProcedure
+  unbanUser: adminProcedure
     .input(
       z.object({
         userId: z.string(),
       })
     )
-    .mutation(async ({ input, ctx }) => {
-      // Check if user is admin
-      if (!ctx.user?.isAdmin) {
-        throw new Error("Unauthorized");
-      }
-
+    .mutation(async ({ input }) => {
       return await unbanUser(input.userId);
     }),
 });

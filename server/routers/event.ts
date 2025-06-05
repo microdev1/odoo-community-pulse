@@ -17,8 +17,14 @@ import {
   sendEventCancellationNotifications,
   sendEventUpdateNotifications,
 } from "@/server/services/notification-service";
-import { publicProcedure, router } from "../trpc";
+import {
+  publicProcedure,
+  privateProcedure,
+  adminProcedure,
+  router,
+} from "../trpc";
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 
 export const eventRouter = router({
   getAll: publicProcedure.query(async () => {
@@ -45,7 +51,7 @@ export const eventRouter = router({
     }),
 
   // Add mutation to create an event
-  createEvent: publicProcedure
+  createEvent: privateProcedure
     .input(
       z.object({
         title: z.string(),
@@ -81,23 +87,19 @@ export const eventRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      // Check if user is authenticated
-      if (!ctx.user) {
-        throw new Error("Unauthorized");
-      }
-
       // Verify the organizer ID matches the authenticated user
       if (input.organizer.id !== ctx.user.id) {
-        throw new Error(
-          "Unauthorized: organizer ID must match authenticated user"
-        );
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Organizer ID must match authenticated user",
+        });
       }
 
       return await createEvent(input);
     }),
 
   // Add mutation to update an event
-  updateEvent: publicProcedure
+  updateEvent: privateProcedure
     .input(
       z.object({
         id: z.string(),
@@ -130,22 +132,21 @@ export const eventRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      // Check if user is authenticated
-      if (!ctx.user) {
-        throw new Error("Unauthorized");
-      }
-
       // Get the event to check ownership
       const event = await getEventById(input.id);
       if (!event) {
-        throw new Error("Event not found");
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Event not found",
+        });
       }
 
       // Check if user is the organizer or an admin
       if (event.organizerId !== ctx.user.id && !ctx.user.isAdmin) {
-        throw new Error(
-          "Unauthorized: you must be the event organizer to update it"
-        );
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be the event organizer to update it",
+        });
       }
 
       const result = await updateEvent(input.id, input);
@@ -162,25 +163,24 @@ export const eventRouter = router({
     }),
 
   // Add mutation to delete an event
-  deleteEvent: publicProcedure
+  deleteEvent: privateProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      // Check if user is authenticated
-      if (!ctx.user) {
-        throw new Error("Unauthorized");
-      }
-
       // Get the event to check ownership
       const event = await getEventById(input.id);
       if (!event) {
-        throw new Error("Event not found");
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Event not found",
+        });
       }
 
       // Check if user is the organizer or an admin
       if (event.organizerId !== ctx.user.id && !ctx.user.isAdmin) {
-        throw new Error(
-          "Unauthorized: you must be the event organizer to delete it"
-        );
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "You must be the event organizer to delete it",
+        });
       }
 
       // Send cancellation notifications to registered users
@@ -190,43 +190,21 @@ export const eventRouter = router({
     }),
 
   // Add query to get events by user
-  getUserEvents: publicProcedure
+  getUserEvents: privateProcedure
     .input(z.object({ userId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      // Check if user is authenticated and requesting their own events
-      if (!ctx.user) {
-        throw new Error("Unauthorized");
-      }
-
-      // Check if user is requesting their own events or is an admin
-      if (input.userId !== ctx.user.id && !ctx.user.isAdmin) {
-        throw new Error("Unauthorized: you can only view your own events");
-      }
-
+    .query(async ({ input }) => {
       return await getUserEvents(input.userId);
     }),
 
   // Add query to get registered events for a user
-  getRegisteredEvents: publicProcedure
+  getRegisteredEvents: privateProcedure
     .input(z.object({ userId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      // Check if user is authenticated and requesting their own registrations
-      if (!ctx.user) {
-        throw new Error("Unauthorized");
-      }
-
-      // Check if user is requesting their own registrations or is an admin
-      if (input.userId !== ctx.user.id && !ctx.user.isAdmin) {
-        throw new Error(
-          "Unauthorized: you can only view your own registrations"
-        );
-      }
-
+    .query(async ({ input }) => {
       return await getRegisteredEvents(input.userId);
     }),
 
   // Add mutation to register for an event
-  registerForEvent: publicProcedure
+  registerForEvent: privateProcedure
     .input(
       z.object({
         eventId: z.string(),
@@ -238,67 +216,28 @@ export const eventRouter = router({
         ticketTierId: z.string().optional(),
       })
     )
-    .mutation(async ({ input, ctx }) => {
-      // Check if user is authenticated and registering themselves
-      if (!ctx.user) {
-        throw new Error("Unauthorized");
-      }
-
-      // Check if user is registering themselves
-      if (input.userId !== ctx.user.id) {
-        throw new Error("Unauthorized: you can only register yourself");
-      }
-
+    .mutation(async ({ input }) => {
       return await registerForEvent(input);
     }),
 
   // Add query to check if user is registered for an event
-  isUserRegistered: publicProcedure
+  isUserRegistered: privateProcedure
     .input(z.object({ eventId: z.string(), userId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      // Check if user is authenticated and checking their own registration
-      if (!ctx.user) {
-        throw new Error("Unauthorized");
-      }
-
-      // Check if user is checking their own registration or is an admin
-      if (input.userId !== ctx.user.id && !ctx.user.isAdmin) {
-        throw new Error(
-          "Unauthorized: you can only check your own registration"
-        );
-      }
-
+    .query(async ({ input }) => {
       return await isUserRegistered(input.eventId, input.userId);
     }),
 
   // Add mutation to cancel registration for an event
-  cancelRegistration: publicProcedure
+  cancelRegistration: privateProcedure
     .input(z.object({ eventId: z.string(), userId: z.string() }))
-    .mutation(async ({ input, ctx }) => {
-      // Check if user is authenticated and cancelling their own registration
-      if (!ctx.user) {
-        throw new Error("Unauthorized");
-      }
-
-      // Check if user is cancelling their own registration or is an admin
-      if (input.userId !== ctx.user.id && !ctx.user.isAdmin) {
-        throw new Error(
-          "Unauthorized: you can only cancel your own registration"
-        );
-      }
-
+    .mutation(async ({ input }) => {
       return await cancelRegistration(input.eventId, input.userId);
     }),
 
   // Admin procedures
-  approveEvent: publicProcedure
+  approveEvent: adminProcedure
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input, ctx }) => {
-      // Check if user is admin
-      if (!ctx.user?.isAdmin) {
-        throw new Error("Unauthorized: admin access required");
-      }
-
+    .mutation(async ({ input }) => {
       const result = await approveEvent(input.id);
       if (result.success) {
         // Send approval notification
@@ -310,14 +249,9 @@ export const eventRouter = router({
       return result;
     }),
 
-  rejectEvent: publicProcedure
+  rejectEvent: adminProcedure
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input, ctx }) => {
-      // Check if user is admin
-      if (!ctx.user?.isAdmin) {
-        throw new Error("Unauthorized: admin access required");
-      }
-
+    .mutation(async ({ input }) => {
       const result = await rejectEvent(input.id);
       if (result.success) {
         // Send rejection notification

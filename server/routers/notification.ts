@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { publicProcedure, router } from "../trpc";
+import { publicProcedure, adminProcedure, router } from "../trpc";
 import {
   sendEventCancellationNotifications,
   sendEventReminders,
@@ -9,13 +9,7 @@ import {
 
 export const notificationRouter = router({
   // Send reminders for events happening tomorrow from admin UI
-  sendEventReminders: publicProcedure.mutation(async ({ ctx }) => {
-    if (!ctx.user?.isAdmin) {
-      throw new TRPCError({
-        code: "UNAUTHORIZED",
-        message: "Unauthorized: admin access required",
-      });
-    }
+  sendEventReminders: adminProcedure.mutation(async () => {
     return await sendEventReminders();
   }),
 
@@ -38,37 +32,25 @@ export const notificationRouter = router({
     }),
 
   // Send update notifications for a specific event
-  sendEventUpdateNotifications: publicProcedure
+  sendEventUpdateNotifications: adminProcedure
     .input(
       z.object({
         eventId: z.string(),
         message: z.string(),
       })
     )
-    .mutation(async ({ input, ctx }) => {
-      if (!ctx.user?.isAdmin) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Unauthorized: admin access required",
-        });
-      }
+    .mutation(async ({ input }) => {
       return await sendEventUpdateNotifications(input.eventId, input.message);
     }),
 
   // Send cancellation notifications for a specific event
-  sendEventCancellationNotifications: publicProcedure
+  sendEventCancellationNotifications: adminProcedure
     .input(
       z.object({
         eventId: z.string(),
       })
     )
-    .mutation(async ({ input, ctx }) => {
-      if (!ctx.user?.isAdmin) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Unauthorized: admin access required",
-        });
-      }
+    .mutation(async ({ input }) => {
       return await sendEventCancellationNotifications(input.eventId);
     }),
 });

@@ -41,26 +41,29 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for auth token in cookies
-  const authToken = request.cookies.get("authToken")?.value;
+  // Check for token in Authorization header first, then cookie as fallback
+  const authHeader = request.headers.get("Authorization");
+  const bearerToken = authHeader?.startsWith("Bearer ")
+    ? authHeader.substring(7)
+    : null;
+  const cookieToken = request.cookies.get("authToken")?.value;
+  const token = bearerToken || cookieToken;
 
   // If no token and trying to access a protected route, redirect to login
-  if (!authToken) {
-    // Store the original URL to redirect back after login
+  if (!token) {
     const url = new URL("/auth", request.url);
-    url.searchParams.set("callbackUrl", encodeURI(request.url));
+    url.searchParams.set("returnUrl", request.url);
 
-    // Create a response that redirects to the login page
     const response = NextResponse.redirect(url);
 
-    // Set a secure, HTTP-only cookie to prevent XSS attacks
+    // Store returnUrl in a secure cookie
     response.cookies.set({
-      name: "intendedDestination",
+      name: "returnUrl",
       value: request.url,
       path: "/",
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "strict",
       maxAge: 60 * 10, // 10 minutes
     });
 

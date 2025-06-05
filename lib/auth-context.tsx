@@ -14,9 +14,9 @@ export type User = {
   id: string;
   username: string;
   email: string;
-  phone?: string;
-  isAdmin: boolean;
-  isVerified: boolean;
+  phone: string | null;
+  isAdmin: boolean | null;
+  isVerified: boolean | null;
 };
 
 // Define the auth context type
@@ -42,16 +42,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Use the getCurrentUser query
   const { mutateAsync: getCurrentUser } =
     trpc.user.getCurrentUser.useMutation();
+
+  // Function to set auth token securely
+  const setAuthToken = (token: string | null) => {
+    if (token) {
+      // Set httpOnly cookie with secure attributes
+      document.cookie = `authToken=${token}; path=/; secure; samesite=strict; max-age=604800`; // 7 days
+    } else {
+      // Remove the cookie
+      document.cookie =
+        "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; secure; samesite=strict";
+    }
+  };
+
+  // Function to get auth token from cookie
+  const getAuthToken = (): string | null => {
+    return (
+      document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("authToken="))
+        ?.split("=")[1] || null
+    );
+  };
 
   // Function to refresh the auth state
   const refreshAuth = async () => {
     setIsLoading(true);
     try {
-      // Get token from localStorage
-      const token = localStorage.getItem("authToken");
+      const token = getAuthToken();
 
       if (!token) {
         setUser(null);
@@ -62,16 +82,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Get the current user with the token
       const result = await getCurrentUser({ token });
 
-      if (result?.user) {
+      if (result.success && "user" in result) {
         setUser(result.user);
       } else {
         // If no user was returned, clear the token
-        localStorage.removeItem("authToken");
+        setAuthToken(null);
         setUser(null);
       }
     } catch (error) {
       console.error("Error refreshing auth:", error);
-      localStorage.removeItem("authToken");
+      // Clear token and user state on error
+      setAuthToken(null);
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -80,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Function to log out
   const logout = () => {
-    localStorage.removeItem("authToken");
+    setAuthToken(null);
     setUser(null);
   };
 
