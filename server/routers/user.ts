@@ -2,20 +2,15 @@
 
 import { publicProcedure, router } from "../trpc";
 import { z } from "zod";
-import { ServerUserService } from "../services/user-service";
 
 export const userRouter = router({
   // Get user by ID
   getById: publicProcedure
     .input(z.object({ id: z.string() }))
-    .query(async ({ input }) => {
-      return await ServerUserService.getUserById(input.id);
-    }),
+    .query(async ({ input }) => {}),
 
   // Get all users (admin only)
-  getAllUsers: publicProcedure.query(async () => {
-    return await ServerUserService.getAllUsers();
-  }),
+  getAllUsers: publicProcedure.query(async () => {}),
 
   // Login
   login: publicProcedure
@@ -25,9 +20,7 @@ export const userRouter = router({
         password: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await ServerUserService.loginUser(input.username, input.password);
-    }),
+    .mutation(async ({ input }) => {}),
 
   // Register new user
   register: publicProcedure
@@ -39,9 +32,7 @@ export const userRouter = router({
         phone: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await ServerUserService.registerUser(input);
-    }),
+    .mutation(async ({ input }) => {}),
 
   // Validate token and get current user
   getCurrentUser: publicProcedure
@@ -50,9 +41,7 @@ export const userRouter = router({
         token: z.string(),
       })
     )
-    .query(async ({ input }) => {
-      return await ServerUserService.getCurrentUser(input.token);
-    }),
+    .query(async ({ input }) => {}),
 
   // Admin functions
   setVerifiedStatus: publicProcedure
@@ -62,12 +51,7 @@ export const userRouter = router({
         isVerified: z.boolean(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await ServerUserService.setUserVerifiedStatus(
-        input.userId,
-        input.isVerified
-      );
-    }),
+    .mutation(async ({ input }) => {}),
 
   banUser: publicProcedure
     .input(
@@ -76,9 +60,7 @@ export const userRouter = router({
         reason: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await ServerUserService.banUser(input.userId, input.reason);
-    }),
+    .mutation(async ({ input }) => {}),
 
   unbanUser: publicProcedure
     .input(
@@ -86,7 +68,5 @@ export const userRouter = router({
         userId: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await ServerUserService.unbanUser(input.userId);
-    }),
+    .mutation(async ({ input }) => {}),
 });

@@ -8,7 +8,6 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useEvents } from "@/lib/event-hooks";
-import { Event } from "@/server/db/events-db";
 
 export default function AdminPage() {
   const { isAuthenticated, isAdmin } = useAuth();

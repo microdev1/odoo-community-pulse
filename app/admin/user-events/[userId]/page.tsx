@@ -8,7 +8,6 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { EventService } from "@/lib/event-service";
-import { Event } from "@/server/db/events-db";
 
 interface UserEventsPageProps {
   params: {

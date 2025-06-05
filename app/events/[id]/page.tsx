@@ -3,7 +3,6 @@
 import { Header } from "@/components/header";
 import { EventDetailClientEnhanced } from "./event-detail-client";
 import { useParams } from "next/navigation";
-import { Event } from "@/server/db/events-db";
 import { useEvent } from "@/lib/event-hooks";
 
 export default function EventPage() {

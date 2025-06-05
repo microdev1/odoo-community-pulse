@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { EventCard } from "@/components/event-card";
-import { getApprovedEvents, Event } from "@/server/db/events-db";
 
 interface SearchResultsProps {
   query: string;

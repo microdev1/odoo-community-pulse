@@ -2,20 +2,13 @@
 
 import { publicProcedure, router } from "../trpc";
 import { z } from "zod";
-import { ServerEventService } from "../services/event-service";
 
 export const eventRouter = router({
-  getAll: publicProcedure.query(async () => {
-    // Using server-side event service to get events
-    return await ServerEventService.getApprovedEvents();
-  }),
+  getAll: publicProcedure.query(async () => {}),
 
   getById: publicProcedure
     .input(z.object({ id: z.string() }))
-    .query(async ({ input }) => {
-      // Using server-side event service to get event by id
-      return await ServerEventService.getEventById(input.id);
-    }),
+    .query(async ({ input }) => {}),
 
   search: publicProcedure
     .input(
@@ -26,42 +19,7 @@ export const eventRouter = router({
         endDate: z.date().optional(),
       })
     )
-    .query(async ({ input }) => {
-      // Use the server-side implementation with filtering options
-      if (input.query) {
-        return await ServerEventService.searchEvents(input.query, {
-          category: input.category,
-          startDate: input.startDate,
-          endDate: input.endDate,
-        });
-      }
-
-      // If no query is provided, just get all approved events and apply filters
-      const events = await ServerEventService.getApprovedEvents();
-
-      // Filter by category if provided
-      let filteredEvents = events;
-      if (input.category) {
-        filteredEvents = filteredEvents.filter(
-          (event) => event.category === input.category
-        );
-      }
-
-      // Filter by date range if provided
-      if (input.startDate) {
-        filteredEvents = filteredEvents.filter(
-          (event) => new Date(event.date) >= input.startDate
-        );
-      }
-
-      if (input.endDate) {
-        filteredEvents = filteredEvents.filter(
-          (event) => new Date(event.date) <= input.endDate
-        );
-      }
-
-      return filteredEvents;
-    }),
+    .query(async ({ input }) => {}),
 
   // Add mutation to create an event
   createEvent: publicProcedure
@@ -99,9 +57,7 @@ export const eventRouter = router({
         registrationDeadline: z.date().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await ServerEventService.createEvent(input);
-    }),
+    .mutation(async ({ input }) => {}),
 
   // Add mutation to update an event
   updateEvent: publicProcedure
@@ -136,31 +92,22 @@ export const eventRouter = router({
         registrationDeadline: z.date().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      const { id, ...eventData } = input;
-      return await ServerEventService.updateEvent(id, eventData);
-    }),
+    .mutation(async ({ input }) => {}),
 
   // Add mutation to delete an event
   deleteEvent: publicProcedure
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {
-      return await ServerEventService.deleteEvent(input.id);
-    }),
+    .mutation(async ({ input }) => {}),
 
   // Add query to get events by user
   getUserEvents: publicProcedure
     .input(z.object({ userId: z.string() }))
-    .query(async ({ input }) => {
-      return await ServerEventService.getUserEvents(input.userId);
-    }),
+    .query(async ({ input }) => {}),
 
   // Add query to get registered events for a user
   getRegisteredEvents: publicProcedure
     .input(z.object({ userId: z.string() }))
-    .query(async ({ input }) => {
-      return await ServerEventService.getRegisteredEvents(input.userId);
-    }),
+    .query(async ({ input }) => {}),
 
   // Add mutation to register for an event
   registerForEvent: publicProcedure
@@ -175,40 +122,24 @@ export const eventRouter = router({
         ticketTierId: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
-      return await ServerEventService.registerForEvent(input);
-    }),
+    .mutation(async ({ input }) => {}),
 
   // Add query to check if user is registered for an event
   isUserRegistered: publicProcedure
     .input(z.object({ eventId: z.string(), userId: z.string() }))
-    .query(async ({ input }) => {
-      return await ServerEventService.isUserRegistered(
-        input.eventId,
-        input.userId
-      );
-    }),
+    .query(async ({ input }) => {}),
 
   // Add mutation to cancel registration for an event
   cancelRegistration: publicProcedure
     .input(z.object({ eventId: z.string(), userId: z.string() }))
-    .mutation(async ({ input }) => {
-      return await ServerEventService.cancelRegistration(
-        input.eventId,
-        input.userId
-      );
-    }),
+    .mutation(async ({ input }) => {}),
 
   // Admin procedures
   approveEvent: publicProcedure
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {
-      return await ServerEventService.approveEvent(input.id);
-    }),
+    .mutation(async ({ input }) => {}),
 
   rejectEvent: publicProcedure
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {
-      return await ServerEventService.rejectEvent(input.id);
-    }),
+    .mutation(async ({ input }) => {}),
 });

@@ -7,12 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Event,
-  EventCategory,
-  createEvent,
-  updateEvent,
-} from "@/server/db/events-db";
 
 interface EventFormProps {
   event?: Event;
