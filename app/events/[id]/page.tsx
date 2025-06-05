@@ -1,24 +1,16 @@
 "use client";
 
 import { Header } from "@/components/header";
-import { useQuery } from "@tanstack/react-query";
 import { EventDetailClientEnhanced } from "./event-detail-client";
 import { useParams } from "next/navigation";
-import { EventService } from "@/lib/event-service";
-import { Event } from "@/lib/events-db";
+import { Event } from "@/server/db/events-db";
+import { useEvent } from "@/lib/event-hooks";
 
 export default function EventPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const {
-    data: event,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["event", id],
-    queryFn: () => EventService.getEventById(id),
-  }) as { data: Event | undefined; isLoading: boolean; error: Error | null };
+  const { data: event, isLoading, error } = useEvent(id);
 
   // Helper functions for formatting
   const formatDate = (dateStr: string | Date) => {

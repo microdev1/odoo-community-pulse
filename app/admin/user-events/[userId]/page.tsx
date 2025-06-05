@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { EventService } from "@/lib/event-service";
-import { Event } from "@/lib/events-db";
+import { Event } from "@/server/db/events-db";
 
 interface UserEventsPageProps {
   params: {
@@ -48,7 +48,7 @@ export default function UserEventsPage({ params }: UserEventsPageProps) {
           setEvents(userEvents);
 
           // Get user info
-          const { users } = await import("@/lib/mock-db");
+          const { users } = await import("@/server/db/mock-db");
           const user = users.find((u) => u.id === userId);
           if (user) {
             setUserName(user.username);

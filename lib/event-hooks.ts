@@ -1,64 +1,58 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { EventService } from "@/lib/event-service";
 import { Event, EventRegistration } from "@/lib/events-db";
+import { trpc } from "@/lib/trpc";
 
-// Event query hooks
+// Event query hooks with tRPC
 export function useEvents() {
-  return useQuery({
-    queryKey: ["events"],
-    queryFn: () => EventService.getEvents(),
-  });
+  return trpc.event.getAll.useQuery();
 }
 
 export function useApprovedEvents() {
-  return useQuery({
-    queryKey: ["events", "approved"],
-    queryFn: () => EventService.getApprovedEvents(),
-  });
+  return trpc.event.getAll.useQuery();
 }
 
 export function useEvent(eventId: string) {
-  return useQuery({
-    queryKey: ["event", eventId],
-    queryFn: () => EventService.getEventById(eventId),
-    enabled: !!eventId,
-  });
+  return trpc.event.getById.useQuery({ id: eventId }, { enabled: !!eventId });
 }
 
 export function useUserEvents(userId: string) {
-  return useQuery({
-    queryKey: ["events", "user", userId],
-    queryFn: () => EventService.getUserEvents(userId),
-    enabled: !!userId,
-  });
+  return trpc.event.getUserEvents.useQuery({ userId }, { enabled: !!userId });
 }
 
 export function useUserRegisteredEvents(userId: string) {
-  return useQuery({
-    queryKey: ["events", "registered", userId],
-    queryFn: () => EventService.getRegisteredEvents(userId),
-    enabled: !!userId,
-  });
+  return trpc.event.getRegisteredEvents.useQuery(
+    { userId },
+    { enabled: !!userId }
+  );
 }
 
-export function useSearchEvents(query: string) {
-  return useQuery({
-    queryKey: ["events", "search", query],
-    queryFn: () => EventService.searchEvents(query),
-    enabled: !!query && query.length > 2,
-  });
+export function useSearchEvents(
+  query: string,
+  options?: {
+    category?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }
+) {
+  return trpc.event.search.useQuery(
+    {
+      query,
+      category: options?.category,
+      startDate: options?.startDate,
+      endDate: options?.endDate,
+    },
+    { enabled: !!query && query.length > 2 }
+  );
 }
 
 // Mutation hooks
 export function useCreateEvent() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (eventData: Omit<Event, "id" | "createdAt" | "isApproved">) =>
-      EventService.createEvent(eventData),
+  return trpc.event.createEvent.useMutation({
     onSuccess: () => {
       toast.success("Event created successfully! Awaiting approval.");
       queryClient.invalidateQueries({ queryKey: ["events"] });
@@ -72,10 +66,8 @@ export function useCreateEvent() {
 export function useUpdateEvent() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Event> }) =>
-      EventService.updateEvent(id, data),
-    onSuccess: (data) => {
+  return trpc.event.updateEvent.useMutation({
+    onSuccess: (data: Event) => {
       toast.success("Event updated successfully!");
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["event", data.id] });
@@ -89,8 +81,7 @@ export function useUpdateEvent() {
 export function useDeleteEvent() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (eventId: string) => EventService.deleteEvent(eventId),
+  return trpc.event.deleteEvent.useMutation({
     onSuccess: () => {
       toast.success("Event deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["events"] });
@@ -104,11 +95,8 @@ export function useDeleteEvent() {
 export function useRegisterForEvent() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (
-      registration: Omit<EventRegistration, "id" | "registeredAt">
-    ) => EventService.registerForEvent(registration),
-    onSuccess: (data) => {
+  return trpc.event.registerForEvent.useMutation({
+    onSuccess: (data: EventRegistration) => {
       toast.success("Registration successful!");
       queryClient.invalidateQueries({
         queryKey: ["events", "registered", data.userId],
@@ -123,13 +111,11 @@ export function useRegisterForEvent() {
 export function useCancelRegistration() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({ eventId, userId }: { eventId: string; userId: string }) =>
-      EventService.cancelRegistration(eventId, userId),
-    onSuccess: (_, { userId }) => {
+  return trpc.event.cancelRegistration.useMutation({
+    onSuccess: (_: boolean, variables: { eventId: string; userId: string }) => {
       toast.success("Registration cancelled successfully!");
       queryClient.invalidateQueries({
-        queryKey: ["events", "registered", userId],
+        queryKey: ["events", "registered", variables.userId],
       });
     },
     onError: () => {

@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginUser, registerUser, AuthResponse } from "@/lib/mock-db";
 import { useAuth } from "@/lib/auth-context";
+import { trpc } from "@/lib/trpc";
 
 type AuthFormProps = React.ComponentPropsWithoutRef<"div"> & {
   defaultMode?: "login" | "signup";
@@ -37,6 +37,10 @@ export function AuthForm({
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Use tRPC mutations
+  const loginMutation = trpc.user.login.useMutation();
+  const registerMutation = trpc.user.register.useMutation();
 
   // Update the URL when mode changes
   useEffect(() => {
@@ -82,53 +86,85 @@ export function AuthForm({
     setSuccess(null);
 
     try {
-      let response: AuthResponse;
-
       if (isLogin) {
-        response = await loginUser(formData.username, formData.password);
+        const result = await loginMutation.mutateAsync({
+          username: formData.username,
+          password: formData.password,
+        });
+
+        if (result.success) {
+          setSuccess(result.message);
+          console.log("Login successful:", result);
+
+          // Store token in localStorage for future API calls
+          if (result.token) {
+            localStorage.setItem("authToken", result.token);
+
+            try {
+              // Refresh auth state to reflect the new user login
+              await refreshAuth();
+
+              // Redirect to appropriate page after a brief delay to show success message
+              setTimeout(() => {
+                const redirectUrl = result.user?.isAdmin
+                  ? "/admin"
+                  : "/my-events";
+                console.log("Redirecting to", redirectUrl);
+
+                // Force a client-side navigation with replacing current history entry
+                router.replace(redirectUrl);
+              }, 1500);
+            } catch (err) {
+              console.error("Error refreshing auth state:", err);
+              setError(
+                "Authentication successful, but failed to update session. Please try again."
+              );
+            }
+          }
+        } else {
+          setError(result.message);
+        }
       } else {
-        response = await registerUser({
+        // Registration
+        const result = await registerMutation.mutateAsync({
           username: formData.username,
           email: formData.email,
           password: formData.password,
           phone: formData.phone || undefined,
         });
-      }
 
-      if (response.success) {
-        setSuccess(response.message);
-        console.log("Auth successful:", response);
+        if (result.success) {
+          setSuccess(result.message);
+          console.log("Registration successful:", result);
 
-        // Store token in localStorage for future API calls
-        if (response.token) {
-          localStorage.setItem("authToken", response.token);
+          // Store token in localStorage for future API calls
+          if (result.token) {
+            localStorage.setItem("authToken", result.token);
 
-          try {
-            // Refresh auth state to reflect the new user login
-            await refreshAuth();
+            try {
+              // Refresh auth state to reflect the new user login
+              await refreshAuth();
 
-            // Redirect to appropriate page after a brief delay to show success message
-            setTimeout(() => {
-              const redirectUrl = response.user?.isAdmin
-                ? "/admin"
-                : "/my-events";
-              console.log("Redirecting to", redirectUrl);
+              // Redirect to appropriate page after a brief delay to show success message
+              setTimeout(() => {
+                const redirectUrl = result.user?.isAdmin
+                  ? "/admin"
+                  : "/my-events";
+                console.log("Redirecting to", redirectUrl);
 
-              // Force a client-side navigation with replacing current history entry
-              router.replace(redirectUrl);
-
-              // For complex redirects or if issues persist, we can also refresh the page
-              // window.location.href = redirectUrl;
-            }, 1500);
-          } catch (err) {
-            console.error("Error refreshing auth state:", err);
-            setError(
-              "Authentication successful, but failed to update session. Please try again."
-            );
+                // Force a client-side navigation with replacing current history entry
+                router.replace(redirectUrl);
+              }, 1500);
+            } catch (err) {
+              console.error("Error refreshing auth state:", err);
+              setError(
+                "Authentication successful, but failed to update session. Please try again."
+              );
+            }
           }
+        } else {
+          setError(result.message);
         }
-      } else {
-        setError(response.message);
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");

@@ -7,7 +7,7 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { getCurrentUser } from "@/lib/mock-db";
+import { trpc } from "@/lib/trpc";
 
 interface User {
   id: string;
@@ -15,7 +15,11 @@ interface User {
   email: string;
   phone?: string;
   isAdmin: boolean;
-  createdAt: Date;
+  isVerifiedOrganizer?: boolean;
+  createdAt: string | Date;
+  isBanned?: boolean;
+  banReason?: string;
+  bannedAt?: string | Date;
 }
 
 interface AuthContextType {
@@ -40,10 +44,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Create the tRPC query but don't execute it automatically
+  const getCurrentUserQuery = trpc.user.getCurrentUser.useQuery(
+    {
+      token:
+        typeof window !== "undefined"
+          ? localStorage?.getItem("authToken") || ""
+          : "",
+    },
+    { enabled: false }
+  );
+
   // Function to load user data from token
   const loadUserFromToken = async (token: string): Promise<boolean> => {
     try {
-      const userData = await getCurrentUser(token);
+      // Refetch the query with the token
+      const result = await getCurrentUserQuery.refetch();
+      const userData = result.data;
 
       if (userData) {
         setUser(userData);
@@ -74,19 +91,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check for saved token on initial load
-    const token = localStorage.getItem("authToken");
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("authToken");
 
-    if (token) {
-      loadUserFromToken(token).finally(() => {
+      if (token) {
+        loadUserFromToken(token).finally(() => {
+          setIsLoading(false);
+        });
+      } else {
         setIsLoading(false);
-      });
+      }
     } else {
       setIsLoading(false);
     }
   }, []);
 
   const logout = () => {
-    localStorage.removeItem("authToken");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("authToken");
+    }
     setUser(null);
   };
 

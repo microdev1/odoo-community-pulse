@@ -6,7 +6,7 @@ import { Header } from "@/components/header";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { User } from "@/lib/mock-db";
+import { User } from "@/server/db/mock-db";
 import { EventService } from "@/lib/event-service";
 
 export default function AdminUsersPage() {
@@ -42,7 +42,7 @@ export default function AdminUsersPage() {
         try {
           // In a real app, this would be a direct API call
           // Here we're dynamically importing to mock the database access
-          const { users } = await import("@/lib/mock-db");
+          const { users } = await import("@/server/db/mock-db");
 
           // Strip passwords for security
           const safeUsers = users.map(({ password: _, ...user }) => user);

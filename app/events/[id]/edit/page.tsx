@@ -1,6 +1,6 @@
 import { Header } from "@/components/header";
 import { EventForm } from "@/components/event-form";
-import { getEventById } from "@/lib/server-events";
+import { getEventById } from "@/server/db/server-events";
 import { notFound } from "next/navigation";
 // Removed import of revalidatePath as it shouldn't be used during rendering
 

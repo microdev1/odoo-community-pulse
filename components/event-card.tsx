@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Event } from "@/lib/events-db";
+import { Event } from "@/server/db/events-db";
 
 interface EventCardProps {
   event: Event;

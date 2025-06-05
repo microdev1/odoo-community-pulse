@@ -12,7 +12,7 @@ import {
   EventCategory,
   createEvent,
   updateEvent,
-} from "@/lib/events-db";
+} from "@/server/db/events-db";
 
 interface EventFormProps {
   event?: Event;

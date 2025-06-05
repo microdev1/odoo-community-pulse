@@ -1,17 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
-import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Event, TicketTier } from "@/lib/events-db";
-import { EventService } from "@/lib/event-service";
-import { useCancelRegistration } from "@/lib/event-hooks";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { LocationMap } from "@/components/location-map";
 import {
   AlertDialog,
@@ -24,6 +12,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/lib/auth-context";
+import { useCancelRegistration } from "@/lib/event-hooks";
+import type { TicketTier, Event } from "@/lib/events-db";
+import { Label } from "@radix-ui/react-label";
+import { Link } from "lucide-react";
+import { useRouter } from "next/router";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 interface EventDetailClientProps {
   event: Event;
@@ -49,27 +47,19 @@ export function EventDetailClientEnhanced({
   const isOrganizer = user?.id === event.organizer.id;
 
   // Check if user is registered for this event
+  const { data: isUserRegisteredResult } = trpc.event.isUserRegistered.useQuery(
+    { eventId: event.id, userId: user?.id || "" },
+    { enabled: !!user?.id && isAuthenticated }
+  );
+
   useEffect(() => {
-    if (user?.id && isAuthenticated) {
-      EventService.isUserRegistered(event.id, user.id).then((result) => {
-        setIsRegistered(result);
-      });
+    if (isUserRegisteredResult !== undefined) {
+      setIsRegistered(isUserRegisteredResult);
     }
-  }, [user, event.id, isAuthenticated]);
+  }, [isUserRegisteredResult]);
 
   // Registration mutation
-  const registerMutation = useMutation({
-    mutationFn: (data: {
-      eventId: string;
-      userId: string;
-      name: string;
-      email: string;
-      phone?: string;
-      additionalAttendees: number;
-      ticketTierId?: string;
-    }) => {
-      return EventService.registerForEvent(data);
-    },
+  const registerMutation = trpc.event.registerForEvent.useMutation({
     onSuccess: () => {
       setRegistrationSuccess(true);
       toast.success("Registration successful! You're all set.");
@@ -80,10 +70,7 @@ export function EventDetailClientEnhanced({
   });
 
   // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: (eventId: string) => {
-      return EventService.deleteEvent(eventId);
-    },
+  const deleteMutation = trpc.event.deleteEvent.useMutation({
     onSuccess: () => {
       toast.success("Event deleted successfully");
       router.push("/my-events");
