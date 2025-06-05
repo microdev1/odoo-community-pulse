@@ -1,9 +1,9 @@
 "use server";
 
 import { db, schema } from ".";
-import { ServerUserService } from "@/server/services/user-service";
 import { createId } from "@paralleldrive/cuid2";
 import { eq } from "drizzle-orm";
+import { hashPassword } from "../services/user-service";
 
 async function initializeDatabase() {
   console.log("Initializing database...");
@@ -34,9 +34,7 @@ async function initializeDatabase() {
         throw new Error("ADMIN_PASSWORD environment variable is not set");
       }
 
-      const hashedPassword = ServerUserService.hashPassword(
-        process.env.ADMIN_PASSWORD
-      );
+      const hashedPassword = await hashPassword(process.env.ADMIN_PASSWORD);
 
       await db.insert(schema.users).values({
         id: adminId,

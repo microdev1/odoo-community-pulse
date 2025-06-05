@@ -3,21 +3,23 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+import { EventWithDetails } from "@/lib/types";
+
 interface EventCardProps {
-  event: Event;
+  event: EventWithDetails;
   className?: string;
 }
 
 export function EventCard({ event, className }: EventCardProps) {
   // Format date to display nicely
-  const formatEventDate = (date: Date) => {
+  const formatEventDate = (dateString: string) => {
     return new Intl.DateTimeFormat("en-US", {
       weekday: "short",
       month: "short",
       day: "numeric",
       hour: "numeric",
       minute: "numeric",
-    }).format(new Date(date));
+    }).format(new Date(dateString));
   };
 
   return (
@@ -68,7 +70,7 @@ export function EventCard({ event, className }: EventCardProps) {
           </p>
           <div className="flex items-center justify-between text-xs opacity-80">
             <span>{formatEventDate(event.date)}</span>
-            <span>{event.location.address.split(",")[0]}</span>
+            <span>{event.locationAddress.split(",")[0]}</span>
           </div>
         </div>
       </div>

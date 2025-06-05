@@ -1,5 +1,3 @@
-"use server";
-
 import { initTRPC } from "@trpc/server";
 import { ZodError } from "zod";
 

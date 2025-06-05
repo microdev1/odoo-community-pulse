@@ -1,6 +1,6 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "@/server/routers/_app";
-import { ServerUserService } from "@/server/services/user-service";
+import { getCurrentUser } from "@/server/services/user-service";
 
 // Create a context for each request
 const createContext = async (req: Request) => {
@@ -16,7 +16,7 @@ const createContext = async (req: Request) => {
   const token = authHeader.split(" ")[1];
 
   // Get the user from the token
-  const user = await ServerUserService.getCurrentUser(token);
+  const user = await getCurrentUser(token);
 
   // Return the context with the user
   return { user };

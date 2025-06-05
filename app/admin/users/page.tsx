@@ -6,17 +6,24 @@ import { Header } from "@/components/header";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { User } from "@/server/db/mock-db";
-import { EventService } from "@/lib/event-service";
+import { trpc } from "@/lib/trpc";
+import { useUsers } from "@/lib/user-hooks";
 
 export default function AdminUsersPage() {
   const { isAuthenticated, isAdmin } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState<
-    (Omit<User, "password"> & {
-      isVerifiedOrganizer?: boolean;
+    {
+      id: string;
+      username: string;
+      email: string;
+      phone?: string;
+      isAdmin: boolean;
+      isVerified: boolean;
       isBanned?: boolean;
-    })[]
+      banReason?: string;
+      createdAt?: string;
+    }[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -40,15 +47,11 @@ export default function AdminUsersPage() {
       if (isAdmin) {
         setIsLoading(true);
         try {
-          // In a real app, this would be a direct API call
-          // Here we're dynamically importing to mock the database access
-          const { users } = await import("@/server/db/mock-db");
-
-          // Strip passwords for security
-          const safeUsers = users.map(({ password: _, ...user }) => user);
-          setUsers(safeUsers);
+          const allUsersResponse = await trpc.user.getAllUsers.query();
+          setUsers(allUsersResponse);
         } catch (error) {
           console.error("Failed to fetch users:", error);
+          toast.error("Failed to load users");
         } finally {
           setIsLoading(false);
         }
@@ -62,14 +65,14 @@ export default function AdminUsersPage() {
     }
   }, [isAuthenticated, isAdmin, router, isLoading]);
 
+  const { setVerifiedStatus, banUser, unbanUser } = useUsers();
+
   const handleVerifyUser = async (userId: string, isVerified: boolean) => {
     try {
-      await EventService.setUserVerifiedStatus(userId, isVerified);
+      await setVerifiedStatus(userId, isVerified);
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
-          user.id === userId
-            ? { ...user, isVerifiedOrganizer: isVerified }
-            : user
+          user.id === userId ? { ...user, isVerified } : user
         )
       );
       toast.success(
@@ -86,7 +89,7 @@ export default function AdminUsersPage() {
     if (!reason) return;
 
     try {
-      await EventService.banUser(userId, reason);
+      await banUser(userId, reason);
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
           user.id === userId
@@ -103,7 +106,7 @@ export default function AdminUsersPage() {
 
   const handleUnbanUser = async (userId: string) => {
     try {
-      await EventService.unbanUser(userId);
+      await unbanUser(userId);
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
           user.id === userId
@@ -201,7 +204,7 @@ export default function AdminUsersPage() {
                             Admin
                           </span>
                         )}
-                        {user.isVerifiedOrganizer && (
+                        {user.isVerified && (
                           <span className="ml-2 rounded-full bg-green-100 px-2 text-xs font-semibold text-green-800">
                             Verified
                           </span>
@@ -235,7 +238,7 @@ export default function AdminUsersPage() {
 
                       {!user.isAdmin && (
                         <>
-                          {user.isVerifiedOrganizer ? (
+                          {user.isVerified ? (
                             <Button
                               variant="outline"
                               size="sm"

@@ -38,7 +38,7 @@ export default function AdminPage() {
       if (isAdmin) {
         setIsLoading(true);
         try {
-          const allEvents = await EventService.getEvents();
+          const allEvents = await getEvents();
           setEvents(allEvents);
         } catch (error) {
           console.error("Failed to fetch events:", error);
@@ -57,7 +57,7 @@ export default function AdminPage() {
 
   const handleApproveEvent = async (eventId: string) => {
     try {
-      await EventService.approveEvent(eventId);
+      await approveEvent(eventId);
       // Update the local state
       setEvents((prevEvents) =>
         prevEvents.map((event) =>
@@ -75,7 +75,7 @@ export default function AdminPage() {
 
   const handleRejectEvent = async (eventId: string) => {
     try {
-      await EventService.rejectEvent(eventId);
+      await rejectEvent(eventId);
       // Update the local state
       setEvents((prevEvents) =>
         prevEvents.map((event) =>
@@ -99,7 +99,7 @@ export default function AdminPage() {
     }
 
     try {
-      await EventService.deleteEvent(eventId);
+      await deleteEvent(eventId);
       // Update the local state
       setEvents((prevEvents) =>
         prevEvents.filter((event) => event.id !== eventId)
@@ -118,7 +118,7 @@ export default function AdminPage() {
     if (!reason) return;
 
     try {
-      await EventService.flagEvent(eventId, reason);
+      await flagEvent(eventId, reason);
       // Update the local state
       setEvents((prevEvents) =>
         prevEvents.map((event) =>
@@ -136,7 +136,7 @@ export default function AdminPage() {
 
   const handleUnflagEvent = async (eventId: string) => {
     try {
-      await EventService.unflagEvent(eventId);
+      await unflagEvent(eventId);
       // Update the local state
       setEvents((prevEvents) =>
         prevEvents.map((event) =>

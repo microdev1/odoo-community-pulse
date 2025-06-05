@@ -7,7 +7,8 @@ import { Header } from "@/components/header";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { EventService } from "@/lib/event-service";
+import { trpc } from "@/lib/trpc";
+import type { Event } from "@/lib/event-hooks";
 
 interface UserEventsPageProps {
   params: {
@@ -20,8 +21,58 @@ export default function UserEventsPage({ params }: UserEventsPageProps) {
   const { isAuthenticated, isAdmin } = useAuth();
   const router = useRouter();
   const [events, setEvents] = useState<Event[]>([]);
-  const [userName, setUserName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
+
+  // Load events and user data
+  const { data: eventsData, isLoading: isLoadingEvents } = trpc.event.getUserEvents.useQuery(
+    { userId },
+    { enabled: !!(isAdmin && userId) }
+  );
+
+  const { data: userData, isLoading: isLoadingUser } = trpc.user.getById.useQuery(
+    { id: userId },
+    { enabled: !!(isAdmin && userId) }
+  );
+
+  const flagEventMutation = trpc.event.flagEvent.useMutation({
+    onSuccess: (_, { id, reason }) => {
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === id ? { ...event, isFlagged: true, flagReason: reason } : event
+        )
+      );
+      toast.success("Event has been flagged. Notification sent to organizer.");
+    },
+    onError: (error) => {
+      console.error("Failed to flag event:", error);
+      toast.error("Failed to flag event");
+    },
+  });
+
+  const unflagEventMutation = trpc.event.unflagEvent.useMutation({
+    onSuccess: (_, { id }) => {
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === id ? { ...event, isFlagged: false, flagReason: undefined } : event
+        )
+      );
+      toast.success("Flag removed from event. Notification sent to organizer.");
+    },
+    onError: (error) => {
+      console.error("Failed to unflag event:", error);
+      toast.error("Failed to unflag event");
+    },
+  });
+
+  const { data: eventsData } = trpc.event.getUserEvents.useQuery(
+    { userId },
+    { enabled: !!(isAdmin && userId) }
+  );
+
+  const { data: userData } = trpc.user.getById.useQuery(
+    { id: userId },
+    { enabled: !!(isAdmin && userId) }
+  );
 
   useEffect(() => {
     // Redirect if no longer loading authentication state
@@ -39,19 +90,13 @@ export default function UserEventsPage({ params }: UserEventsPageProps) {
       }
     }
 
-    async function fetchUserEvents() {
-      if (isAdmin && userId) {
-        setIsLoading(true);
-        try {
-          const userEvents = await EventService.getEventsByUser(userId);
-          setEvents(userEvents);
+    if (eventsData) {
+      setEvents(eventsData as Event[]);
+    }
 
-          // Get user info
-          const { users } = await import("@/server/db/mock-db");
-          const user = users.find((u) => u.id === userId);
-          if (user) {
-            setUserName(user.username);
-          }
+    if (userData) {
+      setUserName(userData.username);
+    }
         } catch (error) {
           console.error("Failed to fetch events:", error);
           toast.error("Failed to load user events");
@@ -68,39 +113,58 @@ export default function UserEventsPage({ params }: UserEventsPageProps) {
     }
   }, [isAuthenticated, isAdmin, router, isLoading, userId]);
 
-  const handleApproveEvent = async (eventId: string) => {
-    try {
-      await EventService.approveEvent(eventId);
-      // Update the local state
+  const approveEventMutation = trpc.event.approveEvent.useMutation({
+    onSuccess: (_, { id }) => {
       setEvents((prevEvents) =>
         prevEvents.map((event) =>
-          event.id === eventId ? { ...event, isApproved: true } : event
+          event.id === id ? { ...event, isApproved: true } : event
         )
       );
-      toast.success(
-        "Event approved successfully! Notification sent to organizer."
-      );
-    } catch (error) {
+      toast.success("Event approved successfully! Notification sent to organizer.");
+    },
+    onError: (error) => {
       console.error("Failed to approve event:", error);
       toast.error("Failed to approve event");
-    }
+    },
+  });
+
+  const handleApproveEvent = async (eventId: string) => {
+    approveEventMutation.mutate({ id: eventId });
   };
 
-  const handleRejectEvent = async (eventId: string) => {
-    try {
-      await EventService.rejectEvent(eventId);
-      // Update the local state
+  const rejectEventMutation = trpc.event.rejectEvent.useMutation({
+    onSuccess: (_, { id }) => {
       setEvents((prevEvents) =>
         prevEvents.map((event) =>
-          event.id === eventId ? { ...event, isApproved: false } : event
+          event.id === id ? { ...event, isApproved: false } : event
         )
       );
       toast.success("Event rejected. Notification sent to organizer.");
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error("Failed to reject event:", error);
       toast.error("Failed to reject event");
-    }
+    },
+  });
+
+  const handleRejectEvent = async (eventId: string) => {
+    rejectEventMutation.mutate({ id: eventId });
   };
+
+  const deleteEventMutation = trpc.event.deleteEvent.useMutation({
+    onSuccess: (_, { id }) => {
+      setEvents((prevEvents) =>
+        prevEvents.filter((event) => event.id !== id)
+      );
+      toast.success(
+        "Event deleted successfully! Notifications sent to all registered participants."
+      );
+    },
+    onError: (error) => {
+      console.error("Failed to delete event:", error);
+      toast.error("Failed to delete event");
+    },
+  });
 
   const handleDeleteEvent = async (eventId: string) => {
     if (
@@ -111,58 +175,17 @@ export default function UserEventsPage({ params }: UserEventsPageProps) {
       return;
     }
 
-    try {
-      await EventService.deleteEvent(eventId);
-      // Update the local state
-      setEvents((prevEvents) =>
-        prevEvents.filter((event) => event.id !== eventId)
-      );
-      toast.success(
-        "Event deleted successfully! Notifications sent to all registered participants."
-      );
-    } catch (error) {
-      console.error("Failed to delete event:", error);
-      toast.error("Failed to delete event");
-    }
+    deleteEventMutation.mutate({ id: eventId });
   };
 
   const handleFlagEvent = async (eventId: string) => {
     const reason = prompt("Please enter the reason for flagging this event:");
     if (!reason) return;
-
-    try {
-      await EventService.flagEvent(eventId, reason);
-      // Update the local state
-      setEvents((prevEvents) =>
-        prevEvents.map((event) =>
-          event.id === eventId
-            ? { ...event, isFlagged: true, flagReason: reason }
-            : event
-        )
-      );
-      toast.success("Event has been flagged. Notification sent to organizer.");
-    } catch (error) {
-      console.error("Failed to flag event:", error);
-      toast.error("Failed to flag event");
-    }
+    flagEventMutation.mutate({ id: eventId, reason });
   };
 
   const handleUnflagEvent = async (eventId: string) => {
-    try {
-      await EventService.unflagEvent(eventId);
-      // Update the local state
-      setEvents((prevEvents) =>
-        prevEvents.map((event) =>
-          event.id === eventId
-            ? { ...event, isFlagged: false, flagReason: undefined }
-            : event
-        )
-      );
-      toast.success("Flag removed from event. Notification sent to organizer.");
-    } catch (error) {
-      console.error("Failed to unflag event:", error);
-      toast.error("Failed to unflag event");
-    }
+    unflagEventMutation.mutate({ id: eventId });
   };
 
   if (isLoading) {

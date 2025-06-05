@@ -1,19 +1,34 @@
-"use server";
-
+import {
+  getAllEvents,
+  getEventById,
+  searchEvents,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  getUserEvents,
+  getRegisteredEvents,
+  registerForEvent,
+  isUserRegistered,
+  cancelRegistration,
+  approveEvent,
+  rejectEvent,
+} from "@/server/services/event-service";
+import {
+  sendEventCancellationNotifications,
+  sendEventUpdateNotifications,
+} from "@/server/services/notification-service";
 import { publicProcedure, router } from "../trpc";
 import { z } from "zod";
-import { ServerEventService } from "@/server/services/event-service";
-import { NotificationService } from "@/server/services/notification-service";
 
 export const eventRouter = router({
   getAll: publicProcedure.query(async () => {
-    return await ServerEventService.getAllEvents();
+    return await getAllEvents();
   }),
 
   getById: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
-      return await ServerEventService.getEventById(input.id);
+      return await getEventById(input.id);
     }),
 
   search: publicProcedure
@@ -26,7 +41,7 @@ export const eventRouter = router({
       })
     )
     .query(async ({ input }) => {
-      return await ServerEventService.searchEvents(input);
+      return await searchEvents(input);
     }),
 
   // Add mutation to create an event
@@ -78,7 +93,7 @@ export const eventRouter = router({
         );
       }
 
-      return await ServerEventService.createEvent(input);
+      return await createEvent(input);
     }),
 
   // Add mutation to update an event
@@ -121,7 +136,7 @@ export const eventRouter = router({
       }
 
       // Get the event to check ownership
-      const event = await ServerEventService.getEventById(input.id);
+      const event = await getEventById(input.id);
       if (!event) {
         throw new Error("Event not found");
       }
@@ -133,11 +148,11 @@ export const eventRouter = router({
         );
       }
 
-      const result = await ServerEventService.updateEvent(input.id, input);
+      const result = await updateEvent(input.id, input);
 
       // Send notifications to registered users about the update
       if (result.success) {
-        await NotificationService.sendEventUpdateNotifications(
+        await sendEventUpdateNotifications(
           input.id,
           `The event "${event.title}" has been updated. Please check the event page for details.`
         );
@@ -156,7 +171,7 @@ export const eventRouter = router({
       }
 
       // Get the event to check ownership
-      const event = await ServerEventService.getEventById(input.id);
+      const event = await getEventById(input.id);
       if (!event) {
         throw new Error("Event not found");
       }
@@ -169,9 +184,9 @@ export const eventRouter = router({
       }
 
       // Send cancellation notifications to registered users
-      await NotificationService.sendEventCancellationNotifications(input.id);
+      await sendEventCancellationNotifications(input.id);
 
-      return await ServerEventService.deleteEvent(input.id);
+      return await deleteEvent(input.id);
     }),
 
   // Add query to get events by user
@@ -188,7 +203,7 @@ export const eventRouter = router({
         throw new Error("Unauthorized: you can only view your own events");
       }
 
-      return await ServerEventService.getUserEvents(input.userId);
+      return await getUserEvents(input.userId);
     }),
 
   // Add query to get registered events for a user
@@ -207,7 +222,7 @@ export const eventRouter = router({
         );
       }
 
-      return await ServerEventService.getRegisteredEvents(input.userId);
+      return await getRegisteredEvents(input.userId);
     }),
 
   // Add mutation to register for an event
@@ -234,7 +249,7 @@ export const eventRouter = router({
         throw new Error("Unauthorized: you can only register yourself");
       }
 
-      return await ServerEventService.registerForEvent(input);
+      return await registerForEvent(input);
     }),
 
   // Add query to check if user is registered for an event
@@ -253,10 +268,7 @@ export const eventRouter = router({
         );
       }
 
-      return await ServerEventService.isUserRegistered(
-        input.eventId,
-        input.userId
-      );
+      return await isUserRegistered(input.eventId, input.userId);
     }),
 
   // Add mutation to cancel registration for an event
@@ -275,10 +287,7 @@ export const eventRouter = router({
         );
       }
 
-      return await ServerEventService.cancelRegistration(
-        input.eventId,
-        input.userId
-      );
+      return await cancelRegistration(input.eventId, input.userId);
     }),
 
   // Admin procedures
@@ -290,7 +299,15 @@ export const eventRouter = router({
         throw new Error("Unauthorized: admin access required");
       }
 
-      return await ServerEventService.approveEvent(input.id);
+      const result = await approveEvent(input.id);
+      if (result.success) {
+        // Send approval notification
+        await sendEventUpdateNotifications(
+          input.id,
+          "Your event has been approved! It will now be visible to the public."
+        );
+      }
+      return result;
     }),
 
   rejectEvent: publicProcedure
@@ -301,6 +318,14 @@ export const eventRouter = router({
         throw new Error("Unauthorized: admin access required");
       }
 
-      return await ServerEventService.rejectEvent(input.id);
+      const result = await rejectEvent(input.id);
+      if (result.success) {
+        // Send rejection notification
+        await sendEventUpdateNotifications(
+          input.id,
+          "Your event has been rejected. Please review the event guidelines and make necessary changes to resubmit."
+        );
+      }
+      return result;
     }),
 });

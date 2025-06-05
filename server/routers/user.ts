@@ -1,8 +1,14 @@
-"use server";
-
+import {
+  getAllUsers,
+  loginUser,
+  registerUser,
+  getCurrentUser,
+  setVerifiedStatus,
+  banUser,
+  unbanUser,
+} from "@/server/services/user-service";
 import { publicProcedure, router } from "../trpc";
 import { z } from "zod";
-import { ServerUserService } from "@/server/services/user-service";
 
 export const userRouter = router({
   // Get user by ID
@@ -14,7 +20,7 @@ export const userRouter = router({
         throw new Error("Unauthorized");
       }
 
-      const users = await ServerUserService.getAllUsers();
+      const users = await getAllUsers();
       return users.find((user) => user.id === input.id);
     }),
 
@@ -25,7 +31,7 @@ export const userRouter = router({
       throw new Error("Unauthorized");
     }
 
-    return await ServerUserService.getAllUsers();
+    return await getAllUsers();
   }),
 
   // Login
@@ -37,7 +43,7 @@ export const userRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      return await ServerUserService.loginUser(input);
+      return await loginUser(input);
     }),
 
   // Register new user
@@ -51,7 +57,7 @@ export const userRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      return await ServerUserService.registerUser(input);
+      return await registerUser(input);
     }),
 
   // Validate token and get current user
@@ -62,7 +68,7 @@ export const userRouter = router({
       })
     )
     .mutation(async ({ input }) => {
-      return await ServerUserService.getCurrentUser(input.token);
+      return await getCurrentUser(input.token);
     }),
 
   // Admin functions
@@ -79,10 +85,7 @@ export const userRouter = router({
         throw new Error("Unauthorized");
       }
 
-      return await ServerUserService.setVerifiedStatus(
-        input.userId,
-        input.isVerified
-      );
+      return await setVerifiedStatus(input.userId, input.isVerified);
     }),
 
   banUser: publicProcedure
@@ -98,7 +101,7 @@ export const userRouter = router({
         throw new Error("Unauthorized");
       }
 
-      return await ServerUserService.banUser(input.userId, input.reason);
+      return await banUser(input.userId, input.reason);
     }),
 
   unbanUser: publicProcedure
@@ -113,6 +116,6 @@ export const userRouter = router({
         throw new Error("Unauthorized");
       }
 
-      return await ServerUserService.unbanUser(input.userId);
+      return await unbanUser(input.userId);
     }),
 });

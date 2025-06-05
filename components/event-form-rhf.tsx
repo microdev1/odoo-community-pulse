@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { TicketTier, EventCategory } from "@/lib/events-db";
 
 // Schema for ticket tiers
 const ticketTierSchema = z.object({
@@ -238,7 +237,7 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
           latitude: event?.location.latitude,
           longitude: event?.location.longitude,
         },
-        category: data.category as EventCategory,
+        category: data.category,
         organizer: {
           id: user.id,
           name: user.username,
@@ -260,12 +259,12 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
 
       if (isEditing && event) {
         // Update existing event
-        await EventService.updateEvent(event.id, eventData);
+        await updateEvent(event.id, eventData);
         toast.success("Event updated successfully");
         router.push(`/events/${event.id}`);
       } else {
         // Create new event
-        void (await EventService.createEvent(eventData));
+        void (await createEvent(eventData));
         toast.success("Event created! Awaiting admin approval.");
         router.push(`/my-events`);
       }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Event } from "@/lib/event-hooks";
 
 interface EventFormProps {
   event?: Event;
@@ -51,7 +52,7 @@ export function EventForm({ event, isEditing = false }: EventFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const categories: EventCategory[] = [
+  const categories = [
     "Garage Sale",
     "Sports",
     "Matches",
@@ -97,7 +98,7 @@ export function EventForm({ event, isEditing = false }: EventFormProps) {
         location: {
           address: formData.location,
         },
-        category: formData.category as EventCategory,
+        category: formData.category,
         organizer: {
           id: user.id,
           name: user.username,

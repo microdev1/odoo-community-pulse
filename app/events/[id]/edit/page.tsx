@@ -1,6 +1,5 @@
 import { Header } from "@/components/header";
 import { EventForm } from "@/components/event-form";
-import { getEventById } from "@/server/db/server-events";
 import { notFound } from "next/navigation";
 // Removed import of revalidatePath as it shouldn't be used during rendering
 
@@ -14,7 +13,11 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
   // Await params before destructuring to comply with Next.js 15
   const { id } = await params;
   // Don't call revalidatePath during rendering
-  const event = await getEventById(id);
+  const event = await fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL}/api/trpc/event.getById?input=${JSON.stringify({ id })}`
+  )
+    .then((res) => res.json())
+    .then((res) => res.result.data);
 
   if (!event) {
     notFound();
