@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Event } from "@/lib/events-db";
+import { Event, TicketTier } from "@/lib/events-db";
 import { EventService } from "@/lib/event-service";
 import { useCancelRegistration } from "@/lib/event-hooks";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,9 @@ export function EventDetailClientEnhanced({
   const router = useRouter();
   const [isRegistering, setIsRegistering] = useState(false);
   const [attendees, setAttendees] = useState(1);
+  const [selectedTicketTierId, setSelectedTicketTierId] = useState<
+    string | undefined
+  >(undefined);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
 
@@ -63,6 +66,7 @@ export function EventDetailClientEnhanced({
       email: string;
       phone?: string;
       additionalAttendees: number;
+      ticketTierId?: string;
     }) => {
       return EventService.registerForEvent(data);
     },
@@ -107,6 +111,7 @@ export function EventDetailClientEnhanced({
       email: user.email,
       phone: user?.phone || "",
       additionalAttendees: attendees,
+      ticketTierId: selectedTicketTierId,
     });
   };
 
@@ -191,6 +196,64 @@ export function EventDetailClientEnhanced({
             ) : isRegistering ? (
               <form onSubmit={handleRegister} className="mb-6 space-y-4">
                 <h3 className="text-lg font-medium">Register for this event</h3>
+
+                {/* Ticket tiers selection for paid events */}
+                {!event.isFree &&
+                  event.ticketTiers &&
+                  event.ticketTiers.length > 0 && (
+                    <div className="space-y-3">
+                      <Label htmlFor="ticketTier">Select Ticket Tier</Label>
+                      <div className="space-y-2">
+                        {event.ticketTiers.map((tier) => (
+                          <div
+                            key={tier.id}
+                            className={`cursor-pointer rounded-md border p-3 transition-colors ${
+                              selectedTicketTierId === tier.id
+                                ? "border-primary bg-primary/5"
+                                : "hover:border-gray-400"
+                            }`}
+                            onClick={() => setSelectedTicketTierId(tier.id)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  name="ticketTier"
+                                  id={`tier-${tier.id}`}
+                                  checked={selectedTicketTierId === tier.id}
+                                  onChange={() =>
+                                    setSelectedTicketTierId(tier.id)
+                                  }
+                                  className="h-4 w-4"
+                                />
+                                <Label
+                                  htmlFor={`tier-${tier.id}`}
+                                  className="text-base font-medium"
+                                >
+                                  {tier.name}
+                                </Label>
+                              </div>
+                              <span className="font-medium">
+                                ${tier.price.toFixed(2)}
+                              </span>
+                            </div>
+                            {tier.description && (
+                              <p className="ml-6 mt-1 text-sm text-muted-foreground">
+                                {tier.description}
+                              </p>
+                            )}
+                            {tier.maxAttendees && (
+                              <p className="ml-6 mt-1 text-xs text-muted-foreground">
+                                Limited availability: {tier.maxAttendees}{" "}
+                                tickets
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                 <div>
                   <Label htmlFor="attendees">Number of attendees</Label>
                   <Input
@@ -202,14 +265,36 @@ export function EventDetailClientEnhanced({
                     onChange={(e) => setAttendees(parseInt(e.target.value))}
                   />
                 </div>
+
+                {!event.isFree &&
+                  event.ticketTiers &&
+                  event.ticketTiers.length > 0 &&
+                  !selectedTicketTierId && (
+                    <p className="text-sm text-amber-600">
+                      Please select a ticket tier to continue
+                    </p>
+                  )}
+
                 <Button
                   type="submit"
-                  disabled={registerMutation.isPending}
+                  disabled={
+                    registerMutation.isPending ||
+                    (!event.isFree &&
+                      event.ticketTiers &&
+                      event.ticketTiers.length > 0 &&
+                      !selectedTicketTierId)
+                  }
                   className="w-full"
                 >
                   {registerMutation.isPending
                     ? "Registering..."
-                    : "Complete Registration"}
+                    : `Complete Registration${
+                        !event.isFree &&
+                        selectedTicketTierId &&
+                        event.ticketTiers
+                          ? ` - $${(event.ticketTiers.find((t) => t.id === selectedTicketTierId)?.price || 0).toFixed(2)}`
+                          : ""
+                      }`}
                 </Button>
               </form>
             ) : (
@@ -238,6 +323,43 @@ export function EventDetailClientEnhanced({
               <div>
                 <h3 className="font-medium">Category</h3>
                 <p>{event.category}</p>
+              </div>
+
+              <div>
+                <h3 className="font-medium">Price</h3>
+                {event.isFree ? (
+                  <p className="text-green-600 font-medium">Free</p>
+                ) : event.ticketTiers && event.ticketTiers.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">
+                        Multiple ticket tiers available
+                      </span>
+                      {isAuthenticated && !isRegistered && !isRegistering && (
+                        <Button
+                          onClick={() => setIsRegistering(true)}
+                          variant="link"
+                          className="h-auto p-0 text-sm text-primary"
+                        >
+                          View Tickets
+                        </Button>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      {event.ticketTiers.map((tier) => (
+                        <div
+                          key={tier.id}
+                          className="flex justify-between text-sm"
+                        >
+                          <span>{tier.name}</span>
+                          <span>${tier.price.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p>${event.price?.toFixed(2)}</p>
+                )}
               </div>
 
               <div>

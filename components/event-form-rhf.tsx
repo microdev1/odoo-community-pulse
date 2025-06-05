@@ -12,8 +12,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Event, EventCategory } from "@/lib/events-db";
+import { Event, EventCategory, TicketTier } from "@/lib/events-db";
 import { EventService } from "@/lib/event-service";
+
+// Schema for ticket tiers
+const ticketTierSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, "Tier name is required"),
+  price: z.number().min(0.01, "Price must be greater than 0"),
+  description: z.string().min(1, "Description is required"),
+  maxAttendees: z.number().int().optional(),
+});
 
 // Schema for event form validation
 const eventSchema = z.object({
@@ -35,6 +44,9 @@ const eventSchema = z.object({
   category: z.string(),
   registrationDeadline: z.string().optional(),
   registrationDeadlineTime: z.string().optional(),
+  isFree: z.boolean(),
+  price: z.number().min(0, "Price must be a positive number").optional(),
+  ticketTiers: z.array(ticketTierSchema).optional(),
 });
 
 type EventFormValues = z.infer<typeof eventSchema>;
@@ -48,6 +60,9 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ticketTiers, setTicketTiers] = useState<TicketTier[]>(
+    event?.ticketTiers || []
+  );
 
   // Pre-populate form with existing event data if editing
   const defaultValues: Partial<EventFormValues> = event
@@ -72,20 +87,66 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
         registrationDeadlineTime: event.registrationDeadline
           ? format(new Date(event.registrationDeadline), "HH:mm")
           : undefined,
+        isFree: event.isFree,
+        price: event.price,
+        ticketTiers: event.ticketTiers || [],
       }
     : {
         imageUrl:
           "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=800&q=80",
+        isFree: true,
+        ticketTiers: [],
       };
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
+    setValue,
+    control,
   } = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
     defaultValues,
   });
+
+  const isFreeEvent = watch("isFree");
+
+  // Add a new ticket tier
+  const addTicketTier = () => {
+    const newTier: TicketTier = {
+      id: `tier-${Math.random().toString(36).substring(2, 9)}`,
+      name: "",
+      price: 0,
+      description: "",
+    };
+
+    const updatedTiers = [...ticketTiers, newTier];
+    setTicketTiers(updatedTiers);
+    setValue("ticketTiers", updatedTiers);
+  };
+
+  // Remove a ticket tier
+  const removeTicketTier = (id: string) => {
+    const updatedTiers = ticketTiers.filter((tier) => tier.id !== id);
+    setTicketTiers(updatedTiers);
+    setValue("ticketTiers", updatedTiers);
+  };
+
+  // Update a ticket tier
+  const updateTicketTier = (
+    id: string,
+    field: keyof TicketTier,
+    value: any
+  ) => {
+    const updatedTiers = ticketTiers.map((tier) =>
+      tier.id === id
+        ? { ...tier, [field]: field === "price" ? parseFloat(value) : value }
+        : tier
+    );
+    setTicketTiers(updatedTiers);
+    setValue("ticketTiers", updatedTiers);
+  };
 
   const onSubmit = async (data: EventFormValues) => {
     if (!user) {
@@ -132,6 +193,17 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
           phone: user.phone,
         },
         registrationDeadline,
+        isFree: data.isFree,
+        price: data.isFree ? undefined : data.price,
+        // Add ticket tiers only if it's not a free event
+        ticketTiers: data.isFree
+          ? undefined
+          : data.ticketTiers?.map((tier) => ({
+              ...tier,
+              // Generate ID for new ticket tiers if not provided
+              id:
+                tier.id || `tier-${Math.random().toString(36).substring(2, 9)}`,
+            })),
       };
 
       if (isEditing && event) {
@@ -285,6 +357,160 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
             <p className="mt-1 text-sm text-red-600">
               {errors.category.message}
             </p>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="isFree"
+              {...register("isFree")}
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <Label htmlFor="isFree">This is a free event</Label>
+          </div>
+
+          {!isFreeEvent && (
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="price">Default Event Price ($)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="19.99"
+                  {...register("price", { valueAsNumber: true })}
+                />
+                {errors.price && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.price.message}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  This is the default price shown when no ticket tiers are
+                  selected
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium">Ticket Tiers</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addTicketTier}
+                    size="sm"
+                  >
+                    Add Tier
+                  </Button>
+                </div>
+
+                {ticketTiers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No ticket tiers added. The default price will be used.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {ticketTiers.map((tier, index) => (
+                      <div key={tier.id} className="rounded-md border p-4">
+                        <div className="flex justify-between">
+                          <h4 className="font-medium">
+                            Ticket Tier #{index + 1}
+                          </h4>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => removeTicketTier(tier.id)}
+                            size="sm"
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                        <div className="mt-2 grid gap-4 md:grid-cols-2">
+                          <div>
+                            <Label htmlFor={`tier-name-${tier.id}`}>Name</Label>
+                            <Input
+                              id={`tier-name-${tier.id}`}
+                              value={tier.name}
+                              onChange={(e) =>
+                                updateTicketTier(
+                                  tier.id,
+                                  "name",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="e.g., VIP, Standard, Early Bird"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`tier-price-${tier.id}`}>
+                              Price ($)
+                            </Label>
+                            <Input
+                              id={`tier-price-${tier.id}`}
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={tier.price}
+                              onChange={(e) =>
+                                updateTicketTier(
+                                  tier.id,
+                                  "price",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="29.99"
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <Label htmlFor={`tier-desc-${tier.id}`}>
+                              Description
+                            </Label>
+                            <Textarea
+                              id={`tier-desc-${tier.id}`}
+                              value={tier.description}
+                              onChange={(e) =>
+                                updateTicketTier(
+                                  tier.id,
+                                  "description",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="What's included in this ticket tier"
+                              rows={2}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor={`tier-max-${tier.id}`}>
+                              Max Attendees (Optional)
+                            </Label>
+                            <Input
+                              id={`tier-max-${tier.id}`}
+                              type="number"
+                              min="1"
+                              value={tier.maxAttendees || ""}
+                              onChange={(e) =>
+                                updateTicketTier(
+                                  tier.id,
+                                  "maxAttendees",
+                                  e.target.value
+                                    ? parseInt(e.target.value)
+                                    : undefined
+                                )
+                              }
+                              placeholder="Leave blank for unlimited"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
 

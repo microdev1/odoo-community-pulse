@@ -15,6 +15,14 @@ export type EventCategory =
   | "Festival"
   | "Other";
 
+export interface TicketTier {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  maxAttendees?: number;
+}
+
 export interface Event {
   id: string;
   title: string;
@@ -39,6 +47,9 @@ export interface Event {
   isFlagged?: boolean;
   flagReason?: string;
   registrationDeadline?: Date;
+  isFree: boolean;
+  price?: number; // For backward compatibility
+  ticketTiers?: TicketTier[]; // New field for ticket tiers
   createdAt: Date;
   updatedAt?: Date;
 }
@@ -51,6 +62,9 @@ export interface EventRegistration {
   email: string;
   phone?: string;
   additionalAttendees: number;
+  ticketTierId?: string; // The selected ticket tier
+  ticketTierName?: string; // Store the name for historical records
+  ticketPrice?: number; // Store the price for historical records
   registeredAt: Date;
 }
 
@@ -181,6 +195,7 @@ export async function registerForEvent(
     email: string;
     phone?: string;
     additionalAttendees: number;
+    ticketTierId?: string;
   }
 ): Promise<EventRegistration> {
   // Simulate network delay
@@ -195,6 +210,26 @@ export async function registerForEvent(
     throw new Error("You have already registered for this event");
   }
 
+  // Get the event to find ticket tier details
+  const event = await getEventById(eventId);
+  if (!event) {
+    throw new Error("Event not found");
+  }
+
+  // Find the selected ticket tier if provided
+  let ticketTierName;
+  let ticketPrice;
+
+  if (userData.ticketTierId && event.ticketTiers) {
+    const selectedTier = event.ticketTiers.find(
+      (tier) => tier.id === userData.ticketTierId
+    );
+    if (selectedTier) {
+      ticketTierName = selectedTier.name;
+      ticketPrice = selectedTier.price;
+    }
+  }
+
   const newRegistration: EventRegistration = {
     id: (eventRegistrations.length + 1).toString(),
     eventId,
@@ -203,6 +238,9 @@ export async function registerForEvent(
     email: userData.email,
     phone: userData.phone,
     additionalAttendees: userData.additionalAttendees,
+    ticketTierId: userData.ticketTierId,
+    ticketTierName,
+    ticketPrice,
     registeredAt: new Date(),
   };
 

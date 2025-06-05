@@ -40,9 +40,20 @@ export function EventCard({ event, className }: EventCardProps) {
 
         {/* Content */}
         <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-          <span className="mb-1 inline-block rounded bg-primary/90 px-2 py-1 text-xs font-medium">
-            {event.category}
-          </span>
+          <div className="flex items-center justify-between mb-1">
+            <span className="inline-block rounded bg-primary/90 px-2 py-1 text-xs font-medium">
+              {event.category}
+            </span>
+            <span
+              className={`inline-block rounded px-2 py-1 text-xs font-medium ${event.isFree ? "bg-green-500/90" : "bg-amber-500/90"}`}
+            >
+              {event.isFree
+                ? "Free"
+                : event.ticketTiers && event.ticketTiers.length > 0
+                  ? `From $${Math.min(...event.ticketTiers.map((t) => t.price)).toFixed(2)}`
+                  : `$${event.price?.toFixed(2)}`}
+            </span>
+          </div>
           <h3 className="mb-1 text-lg font-bold">{event.title}</h3>
           <p className="mb-2 line-clamp-2 text-sm opacity-90">
             {event.shortDescription || event.description.substring(0, 100)}

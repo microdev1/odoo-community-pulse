@@ -51,6 +51,8 @@ export function EventForm({ event, isEditing = false }: EventFormProps) {
           .split("T")[1]
           .substring(0, 5)
       : "",
+    isFree: event?.isFree !== undefined ? event.isFree : true,
+    price: event?.price || 0,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,6 +111,8 @@ export function EventForm({ event, isEditing = false }: EventFormProps) {
           email: user.email,
           phone: user.phone,
         },
+        isFree: formData.isFree,
+        price: formData.isFree ? undefined : formData.price,
       };
 
       if (formData.endDate && formData.endTime) {
@@ -289,6 +293,41 @@ export function EventForm({ event, isEditing = false }: EventFormProps) {
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="isFree"
+              checked={formData.isFree}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  isFree: e.target.checked,
+                }))
+              }
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <Label htmlFor="isFree">This is a free event</Label>
+          </div>
+
+          {!formData.isFree && (
+            <div className="grid gap-2">
+              <Label htmlFor="price">Event Price ($) *</Label>
+              <Input
+                id="price"
+                type="number"
+                step="0.01"
+                min="0"
+                required={!formData.isFree}
+                value={formData.price}
+                onChange={handleInputChange}
+                placeholder="19.99"
+                disabled={isSubmitting}
+              />
+            </div>
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
