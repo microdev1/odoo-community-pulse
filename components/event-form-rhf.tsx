@@ -21,7 +21,6 @@ const ticketTierSchema = z.object({
   name: z.string().min(1, "Tier name is required"),
   price: z.number().min(0.01, "Price must be greater than 0"),
   description: z.string().min(1, "Description is required"),
-  maxAttendees: z.number().int().optional(),
 });
 
 // Schema for event form validation
@@ -457,27 +456,6 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
                               }
                               placeholder="What's included in this ticket tier"
                               rows={2}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor={`tier-max-${tier.id}`}>
-                              Max Attendees (Optional)
-                            </Label>
-                            <Input
-                              id={`tier-max-${tier.id}`}
-                              type="number"
-                              min="1"
-                              value={tier.maxAttendees || ""}
-                              onChange={(e) =>
-                                updateTicketTier(
-                                  tier.id,
-                                  "maxAttendees",
-                                  e.target.value
-                                    ? parseInt(e.target.value)
-                                    : undefined
-                                )
-                              }
-                              placeholder="Leave blank for unlimited"
                             />
                           </div>
                         </div>

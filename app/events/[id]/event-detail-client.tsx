@@ -242,12 +242,6 @@ export function EventDetailClientEnhanced({
                                 {tier.description}
                               </p>
                             )}
-                            {tier.maxAttendees && (
-                              <p className="ml-6 mt-1 text-xs text-muted-foreground">
-                                Limited availability: {tier.maxAttendees}{" "}
-                                tickets
-                              </p>
-                            )}
                           </div>
                         ))}
                       </div>

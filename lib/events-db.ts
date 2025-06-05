@@ -20,7 +20,6 @@ export interface TicketTier {
   name: string;
   price: number;
   description: string;
-  maxAttendees?: number;
 }
 
 export interface Event {

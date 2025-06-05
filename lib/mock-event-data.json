@@ -21,6 +21,7 @@
       },
       "isApproved": true,
       "registrationDeadline": "2025-05-24T18:00:00",
+      "isFree": true,
       "createdAt": "2025-04-01"
     },
     {
@@ -44,6 +45,7 @@
         "email": "user1@example.com"
       },
       "isApproved": true,
+      "isFree": true,
       "createdAt": "2025-05-10"
     },
     {
@@ -68,6 +70,7 @@
       },
       "isApproved": true,
       "registrationDeadline": "2025-05-29T20:00:00",
+      "isFree": true,
       "createdAt": "2025-05-15"
     },
     {
@@ -90,6 +93,21 @@
         "email": "admin@example.com"
       },
       "isApproved": true,
+      "isFree": false,
+      "ticketTiers": [
+        {
+          "id": "1",
+          "name": "Standard Entry",
+          "price": 5.00,
+          "description": "General admission to the exhibition"
+        },
+        {
+          "id": "2",
+          "name": "VIP Pass",
+          "price": 15.00,
+          "description": "VIP access with guided tour and refreshments"
+        }
+      ],
       "createdAt": "2025-05-05"
     },
     {
@@ -114,6 +132,21 @@
       },
       "isApproved": false,
       "registrationDeadline": "2025-05-21T20:00:00",
+      "isFree": false,
+      "ticketTiers": [
+        {
+          "id": "3",
+          "name": "Single Class",
+          "price": 10.00,
+          "description": "One-time class admission"
+        },
+        {
+          "id": "4",
+          "name": "Weekly Pass",
+          "price": 25.00,
+          "description": "Access to all yoga sessions this week"
+        }
+      ],
       "createdAt": "2025-05-10"
     }
   ],
@@ -127,6 +160,19 @@
       "phone": "+1234567890",
       "additionalAttendees": 2,
       "registeredAt": "2025-05-01"
+    },
+    {
+      "id": "2",
+      "eventId": "4",
+      "userId": "2",
+      "name": "User1",
+      "email": "user1@example.com",
+      "phone": "+1234567890",
+      "additionalAttendees": 1,
+      "ticketTierId": "2",
+      "ticketTierName": "VIP Pass",
+      "ticketPrice": 15.00,
+      "registeredAt": "2025-05-10"
     }
   ]
 }
