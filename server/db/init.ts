@@ -1,17 +1,17 @@
 "use server";
 
 import { db, schema } from ".";
-import { ServerUserService } from "../services/user-service";
+import { ServerUserService } from "@/server/services/user-service";
 import { createId } from "@paralleldrive/cuid2";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
-export async function initializeDatabase() {
+async function initializeDatabase() {
   console.log("Initializing database...");
 
   try {
-    // Verify database connection
+    // Verify database connection by selecting from the users table
     try {
-      await db.run(sql`SELECT 1`);
+      await db.select().from(schema.users).limit(1);
       console.log("Database connection verified.");
     } catch (error) {
       throw new Error(
@@ -72,3 +72,5 @@ export async function initializeDatabase() {
     };
   }
 }
+
+console.log(initializeDatabase());

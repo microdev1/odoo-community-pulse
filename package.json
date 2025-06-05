@@ -10,12 +10,12 @@
     "lint": "next lint",
     "type": "tsc --noEmit",
     "format": "prettier --write .",
-    "db:generate": "drizzle-kit generate:sqlite",
-    "db:push": "drizzle-kit push:sqlite",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:apply-migrations": "tsx scripts/migrate.ts",
     "db:init": "tsx -r dotenv/config server/db/init.ts",
-    "db:setup": "pnpm run db:init && pnpm run db:generate && pnpm run db:push && npm run db:apply-migrations"
+    "db:setup": "rm -f local.db && pnpm run db:generate && pnpm run db:push"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
@@ -65,6 +65,7 @@
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.12",
     "tailwindcss": "^4.1.8",
+    "tsx": "^4.19.4",
     "tw-animate-css": "^1.3.4",
     "typescript": "^5.8.3"
   }

@@ -2,7 +2,7 @@
 
 import { publicProcedure, router } from "../trpc";
 import { z } from "zod";
-import { ServerUserService } from "../services/user-service";
+import { ServerUserService } from "@/server/services/user-service";
 
 export const userRouter = router({
   // Get user by ID

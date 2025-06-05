@@ -2,8 +2,8 @@
 
 import { publicProcedure, router } from "../trpc";
 import { z } from "zod";
-import { ServerEventService } from "../services/event-service";
-import { NotificationService } from "../services/notification-service";
+import { ServerEventService } from "@/server/services/event-service";
+import { NotificationService } from "@/server/services/notification-service";
 
 export const eventRouter = router({
   getAll: publicProcedure.query(async () => {
