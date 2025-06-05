@@ -7,7 +7,7 @@ A location-aware platform designed to facilitate interaction, visibility, and pa
 - Users can post and browse events. Supported category Garage Sales, Sports, Matches (local cricket, football, tennis, etc.), Community Classes (yoga sessions, art classes, educational workshops), Volunteer Opportunities (clean-up drives donation camps), Exhibitions, Small Festivals or Celebrations.
 - Also, the user can edit and delete his/her event.
 - Users can mark their interest in attending an event without needing to fill out lengthy forms (only take name, email, phone, and number of people coming with you).
-- Notification Connectors (through either one of Email, SMS, or WhatsApp):
+- Notification Connectors (through Email):
   1. Reminder 1 day before the event.
   2. Live updates if the event changes (e.g., location change or cancellation).
 - Mobile freindly

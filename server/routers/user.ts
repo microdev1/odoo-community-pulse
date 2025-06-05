@@ -2,15 +2,31 @@
 
 import { publicProcedure, router } from "../trpc";
 import { z } from "zod";
+import { ServerUserService } from "../services/user-service";
 
 export const userRouter = router({
   // Get user by ID
   getById: publicProcedure
     .input(z.object({ id: z.string() }))
-    .query(async ({ input }) => {}),
+    .query(async ({ input, ctx }) => {
+      // Check if user is admin or requesting their own info
+      if (!ctx.user || (ctx.user.id !== input.id && !ctx.user.isAdmin)) {
+        throw new Error("Unauthorized");
+      }
+
+      const users = await ServerUserService.getAllUsers();
+      return users.find((user) => user.id === input.id);
+    }),
 
   // Get all users (admin only)
-  getAllUsers: publicProcedure.query(async () => {}),
+  getAllUsers: publicProcedure.query(async ({ ctx }) => {
+    // Check if user is admin
+    if (!ctx.user?.isAdmin) {
+      throw new Error("Unauthorized");
+    }
+
+    return await ServerUserService.getAllUsers();
+  }),
 
   // Login
   login: publicProcedure
@@ -20,7 +36,9 @@ export const userRouter = router({
         password: z.string(),
       })
     )
-    .mutation(async ({ input }) => {}),
+    .mutation(async ({ input }) => {
+      return await ServerUserService.loginUser(input);
+    }),
 
   // Register new user
   register: publicProcedure
@@ -32,7 +50,9 @@ export const userRouter = router({
         phone: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {}),
+    .mutation(async ({ input }) => {
+      return await ServerUserService.registerUser(input);
+    }),
 
   // Validate token and get current user
   getCurrentUser: publicProcedure
@@ -41,7 +61,9 @@ export const userRouter = router({
         token: z.string(),
       })
     )
-    .query(async ({ input }) => {}),
+    .mutation(async ({ input }) => {
+      return await ServerUserService.getCurrentUser(input.token);
+    }),
 
   // Admin functions
   setVerifiedStatus: publicProcedure
@@ -51,7 +73,17 @@ export const userRouter = router({
         isVerified: z.boolean(),
       })
     )
-    .mutation(async ({ input }) => {}),
+    .mutation(async ({ input, ctx }) => {
+      // Check if user is admin
+      if (!ctx.user?.isAdmin) {
+        throw new Error("Unauthorized");
+      }
+
+      return await ServerUserService.setVerifiedStatus(
+        input.userId,
+        input.isVerified
+      );
+    }),
 
   banUser: publicProcedure
     .input(
@@ -60,7 +92,14 @@ export const userRouter = router({
         reason: z.string(),
       })
     )
-    .mutation(async ({ input }) => {}),
+    .mutation(async ({ input, ctx }) => {
+      // Check if user is admin
+      if (!ctx.user?.isAdmin) {
+        throw new Error("Unauthorized");
+      }
+
+      return await ServerUserService.banUser(input.userId, input.reason);
+    }),
 
   unbanUser: publicProcedure
     .input(
@@ -68,5 +107,12 @@ export const userRouter = router({
         userId: z.string(),
       })
     )
-    .mutation(async ({ input }) => {}),
+    .mutation(async ({ input, ctx }) => {
+      // Check if user is admin
+      if (!ctx.user?.isAdmin) {
+        throw new Error("Unauthorized");
+      }
+
+      return await ServerUserService.unbanUser(input.userId);
+    }),
 });
