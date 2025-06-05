@@ -50,8 +50,17 @@ export function EventCard({ event, className }: EventCardProps) {
               {event.isFree
                 ? "Free"
                 : event.ticketTiers && event.ticketTiers.length > 0
-                  ? `From $${Math.min(...event.ticketTiers.map((t) => t.price)).toFixed(2)}`
+                  ? event.ticketTiers.length > 1
+                    ? `From $${Math.min(...event.ticketTiers.map((t) => t.price)).toFixed(2)}`
+                    : `$${event.ticketTiers[0].price.toFixed(2)}`
                   : "$0.00"}
+              {!event.isFree &&
+                event.ticketTiers &&
+                event.ticketTiers.length > 1 && (
+                  <span className="ml-1 text-[10px]">
+                    ({event.ticketTiers.length} tiers)
+                  </span>
+                )}
             </span>
           </div>
           <h3 className="mb-1 text-lg font-bold">{event.title}</h3>

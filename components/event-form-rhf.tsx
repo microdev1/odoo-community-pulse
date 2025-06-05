@@ -114,7 +114,7 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
     const newTier: TicketTier = {
       id: `tier-${Math.random().toString(36).substring(2, 9)}`,
       name: "",
-      price: 0,
+      price: 10.0,
       description: "",
     };
 
@@ -377,34 +377,81 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
                     variant="outline"
                     onClick={addTicketTier}
                     size="sm"
+                    className="flex items-center gap-1"
                   >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M5 12h14" />
+                      <path d="M12 5v14" />
+                    </svg>
                     Add Tier
                   </Button>
                 </div>
 
                 {ticketTiers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No ticket tiers added. The default price will be used.
-                  </p>
+                  <div className="rounded-md border border-dashed p-6 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      No ticket tiers added yet. Add tiers to offer different
+                      pricing options.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addTicketTier}
+                      className="mt-3"
+                      size="sm"
+                    >
+                      Add Your First Tier
+                    </Button>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {ticketTiers.map((tier, index) => (
-                      <div key={tier.id} className="rounded-md border p-4">
+                      <div
+                        key={tier.id}
+                        className="rounded-md border p-4 bg-muted/20"
+                      >
                         <div className="flex justify-between">
-                          <h4 className="font-medium">
-                            Ticket Tier #{index + 1}
+                          <h4 className="font-medium flex items-center gap-2">
+                            <span className="flex items-center justify-center bg-primary/10 text-primary rounded-full w-6 h-6 text-xs font-bold">
+                              {index + 1}
+                            </span>
+                            {tier.name || `Ticket Tier #${index + 1}`}
                           </h4>
                           <Button
                             type="button"
                             variant="ghost"
                             onClick={() => removeTicketTier(tier.id)}
                             size="sm"
-                            className="text-red-500 hover:text-red-700"
+                            className="text-red-500 hover:text-red-700 h-7 px-2"
                           >
-                            Remove
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M3 6h18" />
+                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                            </svg>
                           </Button>
                         </div>
-                        <div className="mt-2 grid gap-4 md:grid-cols-2">
+                        <div className="mt-3 grid gap-4 md:grid-cols-2">
                           <div>
                             <Label htmlFor={`tier-name-${tier.id}`}>Name</Label>
                             <Input
@@ -428,7 +475,7 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
                               id={`tier-price-${tier.id}`}
                               type="number"
                               step="0.01"
-                              min="0"
+                              min="0.01"
                               value={tier.price}
                               onChange={(e) =>
                                 updateTicketTier(
@@ -438,6 +485,7 @@ export function EventFormRHF({ event, isEditing = false }: EventFormProps) {
                                 )
                               }
                               placeholder="29.99"
+                              className="font-medium"
                             />
                           </div>
                           <div className="md:col-span-2">

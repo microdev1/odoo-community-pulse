@@ -203,7 +203,7 @@ export function EventDetailClientEnhanced({
                   event.ticketTiers.length > 0 && (
                     <div className="space-y-3">
                       <Label htmlFor="ticketTier">Select Ticket Tier</Label>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {event.ticketTiers.map((tier) => (
                           <div
                             key={tier.id}
@@ -224,16 +224,16 @@ export function EventDetailClientEnhanced({
                                   onChange={() =>
                                     setSelectedTicketTierId(tier.id)
                                   }
-                                  className="h-4 w-4"
+                                  className="h-4 w-4 text-primary"
                                 />
                                 <Label
                                   htmlFor={`tier-${tier.id}`}
-                                  className="text-base font-medium"
+                                  className="text-base font-medium cursor-pointer"
                                 >
                                   {tier.name}
                                 </Label>
                               </div>
-                              <span className="font-medium">
+                              <span className="font-medium text-amber-700">
                                 ${tier.price.toFixed(2)}
                               </span>
                             </div>
@@ -282,13 +282,11 @@ export function EventDetailClientEnhanced({
                 >
                   {registerMutation.isPending
                     ? "Registering..."
-                    : `Complete Registration${
-                        !event.isFree &&
-                        selectedTicketTierId &&
-                        event.ticketTiers
-                          ? ` - $${(event.ticketTiers.find((t) => t.id === selectedTicketTierId)?.price || 0).toFixed(2)}`
-                          : ""
-                      }`}
+                    : event.isFree
+                      ? "Complete Registration"
+                      : selectedTicketTierId && event.ticketTiers
+                        ? `Complete Registration ($${(event.ticketTiers.find((t) => t.id === selectedTicketTierId)?.price || 0).toFixed(2)})`
+                        : "Complete Registration"}
                 </Button>
               </form>
             ) : (
@@ -324,10 +322,12 @@ export function EventDetailClientEnhanced({
                 {event.isFree ? (
                   <p className="text-green-600 font-medium">Free</p>
                 ) : event.ticketTiers && event.ticketTiers.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-2 border rounded-md p-3 bg-amber-50/50">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">
-                        Multiple ticket tiers available
+                      <span className="text-sm font-medium text-amber-800">
+                        {event.ticketTiers.length > 1
+                          ? `${event.ticketTiers.length} ticket tiers available`
+                          : "Ticket pricing"}
                       </span>
                       {isAuthenticated && !isRegistered && !isRegistering && (
                         <Button
@@ -339,14 +339,23 @@ export function EventDetailClientEnhanced({
                         </Button>
                       )}
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-2 divide-y divide-amber-100">
                       {event.ticketTiers.map((tier) => (
                         <div
                           key={tier.id}
-                          className="flex justify-between text-sm"
+                          className="flex flex-col pt-2 first:pt-0"
                         >
-                          <span>{tier.name}</span>
-                          <span>${tier.price.toFixed(2)}</span>
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">{tier.name}</span>
+                            <span className="text-amber-700 font-semibold">
+                              ${tier.price.toFixed(2)}
+                            </span>
+                          </div>
+                          {tier.description && (
+                            <p className="text-xs text-gray-600 mt-1">
+                              {tier.description}
+                            </p>
+                          )}
                         </div>
                       ))}
                     </div>
