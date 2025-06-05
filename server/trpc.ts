@@ -1,5 +1,6 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { ZodError } from "zod";
+import superjson from "superjson";
 
 // Define the context type
 export type Context = {
@@ -17,6 +18,7 @@ export type Context = {
  * Should be done only once per backend!
  */
 const t = initTRPC.context<Context>().create({
+  transformer: superjson,
   errorFormatter(opts) {
     const { shape, error } = opts;
     return {

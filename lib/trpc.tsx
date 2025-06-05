@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import { useState, ReactNode } from "react";
 import type { AppRouter } from "@/server/routers/_app";
+import superjson from "superjson";
 
 // Create the tRPC client
 export const trpc = createTRPCReact<AppRouter>();
@@ -17,6 +18,7 @@ export function TRPCProvider({ children }: { children: ReactNode }) {
       links: [
         httpBatchLink({
           url: "/api/trpc",
+          transformer: superjson,
           headers() {
             // Only get token from cookie
             const token = document.cookie
